@@ -209,5 +209,104 @@ router.get('/analytics', async (req, res) => {
   }
 });
 
+// 9. Admin Companies Management: List all companies
+router.get('/companies', async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        c.*,
+        (SELECT COUNT(*) FROM jobs j 
+         JOIN recruiter_profiles r ON j.recruiter_id = r.user_id 
+         WHERE LOWER(TRIM(r.company_name)) = LOWER(TRIM(c.name))) as jobs_count
+      FROM companies c
+      ORDER BY c.created_at DESC
+    `;
+    const [companies] = await pool.query(query);
+    res.json(companies);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch companies.' });
+  }
+});
+
+// 10. Admin Companies Management: Add new company
+router.post('/companies', async (req, res) => {
+  try {
+    const { name, logo_url, website, industry, location, about } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Company name is required.' });
+    }
+
+    // Check if company already exists
+    const [existing] = await pool.query('SELECT id FROM companies WHERE LOWER(TRIM(name)) = LOWER(TRIM(?))', [name.trim()]);
+    if (existing.length > 0) {
+      return res.status(400).json({ error: 'A company with this name already exists.' });
+    }
+
+    const defaultLogo = logo_url?.trim() || 'https://images.unsplash.com/photo-1549923746-c502d488b3ea?w=150&auto=format&fit=crop&q=80';
+
+    const [result] = await pool.query(`
+      INSERT INTO companies (name, logo_url, website, industry, location, about, verified)
+      VALUES (?, ?, ?, ?, ?, ?, true)
+    `, [
+      name.trim(),
+      defaultLogo,
+      website?.trim() || null,
+      industry?.trim() || 'Information Technology',
+      location?.trim() || 'India',
+      about?.trim() || `${name.trim()} is a leading organization.`
+    ]);
+
+    res.status(201).json({
+      message: `Company '${name.trim()}' added successfully!`,
+      companyId: result.insertId
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to add company.' });
+  }
+});
+
+// 11. Admin Companies Management: Update company
+router.put('/companies/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, logo_url, website, industry, location, about } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Company name is required.' });
+    }
+
+    await pool.query(`
+      UPDATE companies 
+      SET name = ?, logo_url = ?, website = ?, industry = ?, location = ?, about = ?
+      WHERE id = ?
+    `, [
+      name.trim(),
+      logo_url?.trim() || null,
+      website?.trim() || null,
+      industry?.trim() || null,
+      location?.trim() || null,
+      about?.trim() || null,
+      id
+    ]);
+
+    res.json({ message: 'Company details updated successfully!' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update company.' });
+  }
+});
+
+// 12. Admin Companies Management: Delete company
+router.delete('/companies/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM companies WHERE id = ?', [id]);
+    res.json({ message: 'Company removed successfully.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete company.' });
+  }
+});
+
 module.exports = router;
+
 

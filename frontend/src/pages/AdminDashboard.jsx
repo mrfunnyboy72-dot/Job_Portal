@@ -1,22 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Shield, CheckCircle, XCircle, Users, Briefcase, FileText, AlertTriangle, Search, Check, X, BarChart2, TrendingUp, Layers } from 'lucide-react';
+import { 
+  Shield, CheckCircle, XCircle, Users, Briefcase, FileText, AlertTriangle, 
+  Search, Check, X, BarChart2, TrendingUp, Layers, Building2, Plus, Edit, 
+  Trash2, ExternalLink, Globe, MapPin, Sparkles, CheckCircle2 
+} from 'lucide-react';
 
 export function AdminDashboard() {
   const { token } = useAuth();
-  const [activeTab, setActiveTab] = useState('pending-jobs'); // 'pending-jobs', 'all-jobs', 'users', 'applications', 'analytics'
+  const [activeTab, setActiveTab] = useState('pending-jobs'); // 'pending-jobs', 'all-jobs', 'companies', 'users', 'applications', 'analytics'
   const [stats, setStats] = useState(null);
   const [analytics, setAnalytics] = useState(null);
   const [pendingJobs, setPendingJobs] = useState([]);
   const [allJobs, setAllJobs] = useState([]);
   const [users, setUsers] = useState([]);
   const [applications, setApplications] = useState([]);
+  const [companies, setCompanies] = useState([]);
+  const [companySearch, setCompanySearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
   // Reject Job Modal
   const [rejectModalJob, setRejectModalJob] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
+
+  // Add/Edit Company Modal
+  const [showCompanyModal, setShowCompanyModal] = useState(false);
+  const [editingCompany, setEditingCompany] = useState(null);
+  const [companySaving, setCompanySaving] = useState(false);
+  const [companyForm, setCompanyForm] = useState({
+    name: '',
+    logo_url: '',
+    website: '',
+    industry: 'Information Technology',
+    location: '',
+    about: ''
+  });
 
   const fetchAdminData = async () => {
     setLoading(true);
@@ -62,6 +81,13 @@ export function AdminDashboard() {
       });
       const anaData = await anaRes.json();
       if (anaData && !anaData.error) setAnalytics(anaData);
+
+      // 7. Companies (Admin exclusive management)
+      const compRes = await fetch('/api/admin/companies', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const compData = await compRes.json();
+      setCompanies(Array.isArray(compData) ? compData : []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -72,6 +98,80 @@ export function AdminDashboard() {
   useEffect(() => {
     if (token) fetchAdminData();
   }, [token]);
+
+  const openAddCompany = () => {
+    setEditingCompany(null);
+    setCompanyForm({
+      name: '',
+      logo_url: 'https://images.unsplash.com/photo-1549923746-c502d488b3ea?w=150&auto=format&fit=crop&q=80',
+      website: '',
+      industry: 'Information Technology',
+      location: 'Bangalore, India',
+      about: ''
+    });
+    setShowCompanyModal(true);
+  };
+
+  const openEditCompany = (comp) => {
+    setEditingCompany(comp);
+    setCompanyForm({
+      name: comp.name || '',
+      logo_url: comp.logo_url || '',
+      website: comp.website || '',
+      industry: comp.industry || 'Information Technology',
+      location: comp.location || '',
+      about: comp.about || ''
+    });
+    setShowCompanyModal(true);
+  };
+
+  const handleSaveCompany = async (e) => {
+    e.preventDefault();
+    if (!companyForm.name.trim()) {
+      alert('Company Name is required.');
+      return;
+    }
+    setCompanySaving(true);
+    try {
+      const url = editingCompany ? `/api/admin/companies/${editingCompany.id}` : '/api/admin/companies';
+      const method = editingCompany ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(companyForm)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setMessage(data.message || 'Company saved successfully!');
+      setShowCompanyModal(false);
+      fetchAdminData();
+    } catch (err) {
+      alert(err.message || 'Failed to save company');
+    } finally {
+      setCompanySaving(false);
+    }
+  };
+
+  const handleDeleteCompany = async (id, name) => {
+    if (!confirm(`Are you sure you want to delete '${name}'?`)) return;
+    try {
+      const res = await fetch(`/api/admin/companies/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setMessage(data.message || 'Company removed successfully.');
+      fetchAdminData();
+    } catch (err) {
+      alert(err.message || 'Failed to delete company');
+    }
+  };
 
   // Moderate Job: Approve or Reject
   const handleModerateJob = async (jobId, action, rejection_reason = '') => {
@@ -208,6 +308,25 @@ export function AdminDashboard() {
             borderBottom: activeTab === 'all-jobs' ? '3px solid #059669' : '3px solid transparent'
           }}>
           All Jobs Database ({allJobs.length})
+        </button>
+
+        <button 
+          id="tab-admin-companies-btn"
+          onClick={() => setActiveTab('companies')}
+          style={{
+            padding: '12px 20px',
+            border: 'none',
+            background: 'none',
+            fontWeight: 700,
+            fontSize: '0.95rem',
+            cursor: 'pointer',
+            color: activeTab === 'companies' ? '#059669' : 'var(--text-muted)',
+            borderBottom: activeTab === 'companies' ? '3px solid #059669' : '3px solid transparent',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+          <Building2 size={16} /> Verified Companies ({companies.length})
         </button>
 
         <button 
@@ -560,6 +679,286 @@ export function AdminDashboard() {
                 })}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: COMPANIES MANAGEMENT (ADMIN EXCLUSIVE) */}
+      {activeTab === 'companies' && (
+        <div>
+          {/* Header Action Bar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+            <div>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Building2 size={22} color="#059669" /> Verified Companies & Employers
+              </h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '4px' }}>
+                Admin-exclusive directory. Add organizations permitted to hire or be showcased across the portal.
+              </p>
+            </div>
+
+            <button 
+              id="admin-add-company-btn"
+              onClick={openAddCompany}
+              className="btn btn-primary"
+              style={{ backgroundColor: '#059669', borderColor: '#059669', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px' }}>
+              <Plus size={18} /> Add New Company
+            </button>
+          </div>
+
+          {/* Search bar */}
+          <div style={{ marginBottom: '20px', position: 'relative', maxWidth: '420px' }}>
+            <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input 
+              type="text" 
+              placeholder="Search companies by name, industry, or location..."
+              className="form-control"
+              value={companySearch}
+              onChange={(e) => setCompanySearch(e.target.value)}
+              style={{ paddingLeft: '38px' }}
+            />
+          </div>
+
+          {/* Companies Grid */}
+          {(() => {
+            const filtered = companies.filter(c => 
+              c.name?.toLowerCase().includes(companySearch.toLowerCase()) ||
+              c.industry?.toLowerCase().includes(companySearch.toLowerCase()) ||
+              c.location?.toLowerCase().includes(companySearch.toLowerCase())
+            );
+
+            if (filtered.length === 0) {
+              return (
+                <div className="card" style={{ padding: '60px 20px', textAlign: 'center' }}>
+                  <Building2 size={44} color="#94a3b8" style={{ margin: '0 auto 12px' }} />
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>No companies found</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '6px' }}>
+                    Click "Add New Company" above to register organizations.
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '20px' }}>
+                {filtered.map(comp => (
+                  <div key={comp.id} className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid var(--border-color)', transition: 'transform 0.2s, box-shadow 0.2s' }}>
+                    <div>
+                      {/* Top row: Logo, Name & Actions */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                          <img 
+                            src={comp.logo_url || 'https://images.unsplash.com/photo-1549923746-c502d488b3ea?w=150&auto=format&fit=crop&q=80'} 
+                            alt={comp.name}
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = 'https://images.unsplash.com/photo-1549923746-c502d488b3ea?w=150&auto=format&fit=crop&q=80';
+                            }}
+                            style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover', border: '1px solid var(--border-color)' }}
+                          />
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                                {comp.name}
+                              </h3>
+                              <span title="Verified Enterprise" style={{ color: '#059669', display: 'inline-flex' }}>
+                                <CheckCircle2 size={16} />
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: 600, marginTop: '2px' }}>
+                              {comp.industry || 'Information Technology'}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Edit & Delete Buttons */}
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button 
+                            onClick={() => openEditCompany(comp)}
+                            title="Edit Company"
+                            style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '6px', cursor: 'pointer', color: 'var(--text-main)' }}>
+                            <Edit size={15} />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteCompany(comp.id, comp.name)}
+                            title="Delete Company"
+                            style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '6px', padding: '6px', cursor: 'pointer', color: '#991b1b' }}>
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Location & Website */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginTop: '16px', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                        {comp.location && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <MapPin size={14} color="#059669" /> {comp.location}
+                          </div>
+                        )}
+                        {comp.website && (
+                          <a 
+                            href={comp.website.startsWith('http') ? comp.website : `https://${comp.website}`} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--primary)', textDecoration: 'none' }}>
+                            <Globe size={14} /> Website <ExternalLink size={11} />
+                          </a>
+                        )}
+                      </div>
+
+                      {/* About */}
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '12px', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {comp.about || 'Verified corporate partner hiring through WorkPulse platform.'}
+                      </p>
+                    </div>
+
+                    {/* Bottom Status bar */}
+                    <div style={{ marginTop: '18px', paddingTop: '14px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>
+                        Listed: {new Date(comp.created_at).toLocaleDateString()}
+                      </span>
+                      <span style={{ background: 'rgba(5, 150, 105, 0.1)', color: '#059669', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                        {comp.jobs_count || 0} Open Jobs
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* Add / Edit Company Modal */}
+      {showCompanyModal && (
+        <div className="modal-overlay" onClick={() => setShowCompanyModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px', padding: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#059669', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Building2 size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+                    {editingCompany ? 'Edit Company Profile' : 'Add New Verified Company'}
+                  </h3>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Admin-controlled employer catalog
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => setShowCompanyModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCompany} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div className="form-group">
+                <label className="form-label">Company Name *</label>
+                <input 
+                  type="text" 
+                  className="form-control"
+                  placeholder="e.g. Zoho, Microsoft, Freshworks..."
+                  value={companyForm.name}
+                  onChange={(e) => setCompanyForm({ ...companyForm, name: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label className="form-label">Industry</label>
+                  <select 
+                    className="form-control"
+                    value={companyForm.industry}
+                    onChange={(e) => setCompanyForm({ ...companyForm, industry: e.target.value })}>
+                    <option value="Information Technology">Information Technology</option>
+                    <option value="SaaS & Enterprise">SaaS & Enterprise</option>
+                    <option value="Data & Artificial Intelligence">Data & Artificial Intelligence</option>
+                    <option value="Fintech & Banking">Fintech & Banking</option>
+                    <option value="E-Commerce & Retail">E-Commerce & Retail</option>
+                    <option value="Healthcare & Bio">Healthcare & Bio</option>
+                    <option value="Consulting & Services">Consulting & Services</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Headquarters / Location</label>
+                  <input 
+                    type="text" 
+                    className="form-control"
+                    placeholder="e.g. Chennai, Bangalore, Remote"
+                    value={companyForm.location}
+                    onChange={(e) => setCompanyForm({ ...companyForm, location: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Website URL</label>
+                <input 
+                  type="url" 
+                  className="form-control"
+                  placeholder="https://company.com"
+                  value={companyForm.website}
+                  onChange={(e) => setCompanyForm({ ...companyForm, website: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Logo Image URL</label>
+                <input 
+                  type="url" 
+                  className="form-control"
+                  placeholder="https://example.com/logo.png"
+                  value={companyForm.logo_url}
+                  onChange={(e) => setCompanyForm({ ...companyForm, logo_url: e.target.value })}
+                />
+                {/* Preset quick-picks */}
+                <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Presets:</span>
+                  {[
+                    { label: '🏢 Tech', url: 'https://images.unsplash.com/photo-1549923746-c502d488b3ea?w=150&auto=format&fit=crop&q=80' },
+                    { label: '💻 SaaS', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80' },
+                    { label: '🚀 Modern', url: 'https://images.unsplash.com/photo-1572021335469-31706a17aaef?w=150&auto=format&fit=crop&q=80' },
+                    { label: '🌐 Global', url: 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=150&auto=format&fit=crop&q=80' }
+                  ].map(p => (
+                    <button 
+                      key={p.label}
+                      type="button"
+                      onClick={() => setCompanyForm({ ...companyForm, logo_url: p.url })}
+                      style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-subtle)', cursor: 'pointer' }}>
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">About Organization</label>
+                <textarea 
+                  className="form-control"
+                  rows={3}
+                  placeholder="Brief description of the company, mission, and culture..."
+                  value={companyForm.about}
+                  onChange={(e) => setCompanyForm({ ...companyForm, about: e.target.value })}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+                <button type="button" onClick={() => setShowCompanyModal(false)} className="btn btn-secondary" style={{ flex: 1 }}>
+                  Cancel
+                </button>
+                <button 
+                  id="save-company-btn"
+                  type="submit" 
+                  disabled={companySaving} 
+                  className="btn btn-primary" 
+                  style={{ flex: 1.5, backgroundColor: '#059669', borderColor: '#059669' }}>
+                  {companySaving ? 'Saving...' : (editingCompany ? 'Update Company' : 'Add Company')}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

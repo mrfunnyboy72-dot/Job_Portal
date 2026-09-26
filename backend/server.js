@@ -28,6 +28,24 @@ app.use('/api/applications', applicationRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/profile', profileRoutes);
 
+// Public Companies directory (Verified companies managed by Admin)
+app.get('/api/companies', async (req, res) => {
+  try {
+    const { pool } = require('./db');
+    const [companies] = await pool.query(`
+      SELECT c.*, 
+        (SELECT COUNT(*) FROM jobs j 
+         JOIN recruiter_profiles r ON j.recruiter_id = r.user_id 
+         WHERE LOWER(TRIM(r.company_name)) = LOWER(TRIM(c.name)) AND j.status = 'approved') as active_jobs_count
+      FROM companies c
+      ORDER BY c.name ASC
+    `);
+    res.json(companies);
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to fetch companies' });
+  }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({

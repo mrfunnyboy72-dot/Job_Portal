@@ -166,6 +166,34 @@ async function initDatabase() {
       console.log('✅ Categories seeded');
     }
 
+    // 8. Companies table (Managed exclusively by Admin)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS companies (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL UNIQUE,
+        logo_url VARCHAR(500),
+        website VARCHAR(255),
+        industry VARCHAR(150),
+        location VARCHAR(150),
+        about TEXT,
+        verified BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    const [compRows] = await pool.query('SELECT COUNT(*) as count FROM companies');
+    if (compRows[0].count === 0) {
+      await pool.query(`
+        INSERT INTO companies (name, logo_url, website, industry, location, about) VALUES
+        ('TechCorp Inc.', 'https://images.unsplash.com/photo-1549923746-c502d488b3ea?w=150&auto=format&fit=crop&q=80', 'https://techcorp.example.com', 'Information Technology', 'Bangalore, India', 'Global enterprise technology leader empowering cloud solutions.'),
+        ('Zoho Corporation', 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80', 'https://www.zoho.com', 'SaaS & Enterprise', 'Chennai, India', 'Leading web-based online office suite and business applications.'),
+        ('Freshworks', 'https://images.unsplash.com/photo-1572021335469-31706a17aaef?w=150&auto=format&fit=crop&q=80', 'https://www.freshworks.com', 'Customer Engagement Software', 'Chennai, India', 'Empowering front-line workers with intuitive modern software.'),
+        ('TCS (Tata Consultancy)', 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=150&auto=format&fit=crop&q=80', 'https://www.tcs.com', 'IT Consulting & Services', 'Mumbai, India', 'Pioneer in global IT services, consulting, and business solutions.'),
+        ('Swiggy', 'https://images.unsplash.com/photo-1526367790999-0150786686a2?w=150&auto=format&fit=crop&q=80', 'https://www.swiggy.com', 'Food & Quick Commerce', 'Bangalore, India', 'Indias leading on-demand convenience and delivery platform.')
+      `);
+      console.log('✅ Top companies seeded');
+    }
+
     // Seed initial users (Admin, Recruiter, Candidate)
     const [userRows] = await pool.query('SELECT COUNT(*) as count FROM users');
     if (userRows[0].count === 0) {

@@ -6,6 +6,7 @@ export function LandingPage({ onSearch, onViewJob, openAuthModal, setActivePage 
   const { user, role, savedJobIds = [], toggleSaveJob } = useAuth();
   const [categories, setCategories] = useState([]);
   const [featuredJobs, setFeaturedJobs] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [keyword, setKeyword] = useState('');
   const [location, setLocation] = useState('');
 
@@ -18,6 +19,11 @@ export function LandingPage({ onSearch, onViewJob, openAuthModal, setActivePage 
     fetch('/api/jobs/featured')
       .then(res => res.json())
       .then(data => setFeaturedJobs(Array.isArray(data) ? data : []))
+      .catch(err => console.error(err));
+
+    fetch('/api/companies')
+      .then(res => res.json())
+      .then(data => setCompanies(Array.isArray(data) ? data : []))
       .catch(err => console.error(err));
   }, []);
 
@@ -263,6 +269,67 @@ export function LandingPage({ onSearch, onViewJob, openAuthModal, setActivePage 
           ))}
         </div>
       </section>
+
+      {/* Top Verified Companies Section (Managed Exclusively by Platform Admin) */}
+      {companies.length > 0 && (
+        <section style={{ maxWidth: '1280px', margin: '70px auto 0', padding: '0 24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#059669', fontSize: '0.85rem', fontWeight: 700 }}>
+                <Building2 size={16} /> VERIFIED EMPLOYERS
+              </div>
+              <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '4px', fontFamily: 'var(--font-display)' }}>
+                Top Companies Hiring on WorkPulse
+              </h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', marginTop: '2px' }}>
+                Pre-screened and certified by platform administration
+              </p>
+            </div>
+            <button 
+              onClick={() => onSearch({})}
+              style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 700, fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+              Explore all openings <ArrowRight size={15} />
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '18px' }}>
+            {companies.map(comp => (
+              <div 
+                key={comp.id}
+                onClick={() => onSearch({ keyword: comp.name })}
+                className="card card-interactive"
+                style={{ padding: '22px', textAlign: 'center', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <img 
+                    src={comp.logo_url || 'https://images.unsplash.com/photo-1549923746-c502d488b3ea?w=150&auto=format&fit=crop&q=80'} 
+                    alt={comp.name}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://images.unsplash.com/photo-1549923746-c502d488b3ea?w=150&auto=format&fit=crop&q=80';
+                    }}
+                    style={{ width: '56px', height: '56px', borderRadius: '12px', objectFit: 'cover', border: '1px solid var(--border-color)', marginBottom: '14px' }}
+                  />
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 4px' }}>
+                    {comp.name}
+                  </h3>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: 600 }}>
+                    {comp.industry || 'Technology'}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    📍 {comp.location || 'India'}
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--border-color)', width: '100%' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#059669', background: 'rgba(5, 150, 105, 0.1)', padding: '3px 10px', borderRadius: '9999px' }}>
+                    {comp.active_jobs_count || comp.jobs_count || 0} Open Roles
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Master 3-Role Workflow Card (From PDF Page 2 & Page 10) */}
       <section style={{ maxWidth: '1280px', margin: '80px auto 0', padding: '0 24px' }}>
