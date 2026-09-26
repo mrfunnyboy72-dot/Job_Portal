@@ -283,24 +283,12 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }) {
           <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, marginBottom: '8px', textAlign: 'center' }}>
             OR SIGN IN INSTANTLY WITH A DEMO ACCOUNT:
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
             <button 
               type="button" 
               onClick={() => handleQuickLogin('candidate')}
-              style={{ padding: '8px 4px', fontSize: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc', cursor: 'pointer', fontWeight: 600 }}>
-              Candidate
-            </button>
-            <button 
-              type="button" 
-              onClick={() => handleQuickLogin('recruiter')}
-              style={{ padding: '8px 4px', fontSize: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc', cursor: 'pointer', fontWeight: 600 }}>
-              Recruiter
-            </button>
-            <button 
-              type="button" 
-              onClick={() => handleQuickLogin('admin')}
-              style={{ padding: '8px 4px', fontSize: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc', cursor: 'pointer', fontWeight: 600, color: '#059669' }}>
-              Admin
+              style={{ padding: '9px 12px', fontSize: '0.82rem', border: '1px solid #3b82f6', borderRadius: '8px', background: '#eff6ff', color: '#1d4ed8', cursor: 'pointer', fontWeight: 700 }}>
+              ⚡ 1-Click Candidate Demo Login
             </button>
           </div>
         </div>
