@@ -307,6 +307,99 @@ router.delete('/companies/:id', async (req, res) => {
   }
 });
 
+// 13. A06 Categories & Catalogs
+router.get('/categories', async (req, res) => {
+  try {
+    const query = `
+      SELECT c.*, 
+        (SELECT COUNT(*) FROM jobs WHERE category = c.name) as jobs_count
+      FROM categories c
+      ORDER BY c.name ASC
+    `;
+    const [categories] = await pool.query(query);
+
+    // Get unique locations and skills from approved jobs
+    const [jobRows] = await pool.query('SELECT location, skills FROM jobs');
+    const locationsSet = new Set();
+    const skillsSet = new Set();
+
+    jobRows.forEach(j => {
+      if (j.location) locationsSet.add(j.location.trim());
+      if (j.skills) {
+        let skills = [];
+        try {
+          skills = typeof j.skills === 'string' ? JSON.parse(j.skills) : j.skills;
+        } catch (e) {}
+        if (Array.isArray(skills)) {
+          skills.forEach(s => skillsSet.add(s.trim()));
+        }
+      }
+    });
+
+    res.json({
+      categories,
+      locations: Array.from(locationsSet),
+      skills: Array.from(skillsSet)
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch categories.' });
+  }
+});
+
+router.post('/categories', async (req, res) => {
+  try {
+    const { name, icon } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Category name is required.' });
+    }
+    await pool.query('INSERT INTO categories (name, icon) VALUES (?, ?)', [name.trim(), icon || 'folder']);
+    res.status(201).json({ message: `Category '${name.trim()}' added successfully!` });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to add category or already exists.' });
+  }
+});
+
+router.delete('/categories/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM categories WHERE id = ?', [id]);
+    res.json({ message: 'Category removed successfully.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete category.' });
+  }
+});
+
+// 14. A08 Platform Settings
+router.get('/settings', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT setting_key, setting_value FROM platform_settings');
+    const settings = {};
+    rows.forEach(r => {
+      settings[r.setting_key] = r.setting_value === 'true' ? true : (r.setting_value === 'false' ? false : r.setting_value);
+    });
+    res.json(settings);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch settings.' });
+  }
+});
+
+router.post('/settings', async (req, res) => {
+  try {
+    const settings = req.body;
+    for (const [key, value] of Object.entries(settings)) {
+      await pool.query(`
+        INSERT INTO platform_settings (setting_key, setting_value)
+        VALUES (?, ?)
+        ON DUPLICATE KEY UPDATE setting_value = ?
+      `, [key, String(value), String(value)]);
+    }
+    res.json({ message: 'Platform settings updated successfully!' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update settings.' });
+  }
+});
+
 module.exports = router;
+
 
 

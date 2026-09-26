@@ -194,6 +194,29 @@ async function initDatabase() {
       console.log('✅ Top companies seeded');
     }
 
+    // 9. Platform Settings table (For A08 Settings)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS platform_settings (
+        setting_key VARCHAR(100) PRIMARY KEY,
+        setting_value TEXT NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    const [settingRows] = await pool.query('SELECT COUNT(*) as count FROM platform_settings');
+    if (settingRows[0].count === 0) {
+      await pool.query(`
+        INSERT INTO platform_settings (setting_key, setting_value) VALUES
+        ('require_admin_approval', 'true'),
+        ('allow_candidate_registration', 'true'),
+        ('allow_recruiter_registration', 'true'),
+        ('max_jobs_per_recruiter', '50'),
+        ('enable_email_alerts', 'true'),
+        ('maintenance_mode', 'false')
+      `);
+      console.log('✅ Platform settings initialized');
+    }
+
     // Seed initial users (Admin, Recruiter, Candidate)
     const [userRows] = await pool.query('SELECT COUNT(*) as count FROM users');
     if (userRows[0].count === 0) {

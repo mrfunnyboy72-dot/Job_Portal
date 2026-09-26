@@ -3,12 +3,16 @@ import { useAuth } from '../context/AuthContext';
 import { 
   Shield, CheckCircle, XCircle, Users, Briefcase, FileText, AlertTriangle, 
   Search, Check, X, BarChart2, TrendingUp, Layers, Building2, Plus, Edit, 
-  Trash2, ExternalLink, Globe, MapPin, Sparkles, CheckCircle2 
+  Trash2, ExternalLink, Globe, MapPin, Sparkles, CheckCircle2, Settings, 
+  Sliders, ShieldCheck, Download, UserCheck, UserX, Clock, Tag, Code2
 } from 'lucide-react';
 
 export function AdminDashboard() {
   const { token } = useAuth();
-  const [activeTab, setActiveTab] = useState('pending-jobs'); // 'pending-jobs', 'all-jobs', 'companies', 'users', 'applications', 'analytics'
+  // Exact tabs as specified in PDF Page 7
+  // A02: DASHBOARD, A03: USERS, A04: JOBS, A05: APPLICATIONS, A06: CATEGORIES, A07: REPORTS, A08: SETTINGS
+  const [activeTab, setActiveTab] = useState('A02');
+
   const [stats, setStats] = useState(null);
   const [analytics, setAnalytics] = useState(null);
   const [pendingJobs, setPendingJobs] = useState([]);
@@ -16,15 +20,29 @@ export function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [applications, setApplications] = useState([]);
   const [companies, setCompanies] = useState([]);
-  const [companySearch, setCompanySearch] = useState('');
+  const [categoriesData, setCategoriesData] = useState({ categories: [], locations: [], skills: [] });
+  const [settings, setSettings] = useState({
+    require_admin_approval: true,
+    allow_candidate_registration: true,
+    allow_recruiter_registration: true,
+    max_jobs_per_recruiter: 50,
+    enable_email_alerts: true,
+    maintenance_mode: false
+  });
+
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
-  // Reject Job Modal
+  // A03 Users filter
+  const [userRoleFilter, setUserRoleFilter] = useState('all');
+  const [userSearch, setUserSearch] = useState('');
+
+  // A04 Jobs sub-view
+  const [jobSubTab, setJobSubTab] = useState('pending'); // 'pending', 'all-jobs', 'companies'
   const [rejectModalJob, setRejectModalJob] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
 
-  // Add/Edit Company Modal
+  // Company modal in A04
   const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [editingCompany, setEditingCompany] = useState(null);
   const [companySaving, setCompanySaving] = useState(false);
@@ -37,59 +55,65 @@ export function AdminDashboard() {
     about: ''
   });
 
+  // A06 Add Category form
+  const [newCatName, setNewCatName] = useState('');
+  const [catSaving, setCatSaving] = useState(false);
+
+  // A08 Settings saving
+  const [settingsSaving, setSettingsSaving] = useState(false);
+
   const fetchAdminData = async () => {
     setLoading(true);
     try {
-      // 1. Stats
-      const statsRes = await fetch('/api/admin/stats', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const headers = { Authorization: `Bearer ${token}` };
+
+      // 1. Stats (A02)
+      const statsRes = await fetch('/api/admin/stats', { headers });
       const statsData = await statsRes.json();
       setStats(statsData);
 
-      // 2. Pending Jobs
-      const pendingRes = await fetch('/api/admin/pending-jobs', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // 2. Pending Jobs (A04)
+      const pendingRes = await fetch('/api/admin/pending-jobs', { headers });
       const pendingData = await pendingRes.json();
       setPendingJobs(Array.isArray(pendingData) ? pendingData : []);
 
-      // 3. All Jobs
-      const allJobsRes = await fetch('/api/admin/jobs', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // 3. All Jobs (A04)
+      const allJobsRes = await fetch('/api/admin/jobs', { headers });
       const allJobsData = await allJobsRes.json();
       setAllJobs(Array.isArray(allJobsData) ? allJobsData : []);
 
-      // 4. Users
-      const usersRes = await fetch('/api/admin/users', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // 4. Users (A03)
+      const usersRes = await fetch('/api/admin/users', { headers });
       const usersData = await usersRes.json();
       setUsers(Array.isArray(usersData) ? usersData : []);
 
-      // 5. Applications
-      const appsRes = await fetch('/api/admin/applications', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // 5. Applications (A05)
+      const appsRes = await fetch('/api/admin/applications', { headers });
       const appsData = await appsRes.json();
       setApplications(Array.isArray(appsData) ? appsData : []);
 
-      // 6. Analytics
-      const anaRes = await fetch('/api/admin/analytics', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // 6. Companies (A04)
+      const compRes = await fetch('/api/admin/companies', { headers });
+      const compData = await compRes.json();
+      setCompanies(Array.isArray(compData) ? compData : []);
+
+      // 7. Categories & Catalogs (A06)
+      const catRes = await fetch('/api/admin/categories', { headers });
+      const catData = await catRes.json();
+      if (catData && !catData.error) setCategoriesData(catData);
+
+      // 8. Reports / Analytics (A07)
+      const anaRes = await fetch('/api/admin/analytics', { headers });
       const anaData = await anaRes.json();
       if (anaData && !anaData.error) setAnalytics(anaData);
 
-      // 7. Companies (Admin exclusive management)
-      const compRes = await fetch('/api/admin/companies', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const compData = await compRes.json();
-      setCompanies(Array.isArray(compData) ? compData : []);
+      // 9. Platform Settings (A08)
+      const setRes = await fetch('/api/admin/settings', { headers });
+      const setData = await setRes.json();
+      if (setData && !setData.error) setSettings(prev => ({ ...prev, ...setData }));
+
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching admin data:', err);
     } finally {
       setLoading(false);
     }
@@ -99,6 +123,51 @@ export function AdminDashboard() {
     if (token) fetchAdminData();
   }, [token]);
 
+  // Handle Moderate Job (A04)
+  const handleModerateJob = async (jobId, action, rejection_reason = '') => {
+    try {
+      const res = await fetch(`/api/admin/jobs/${jobId}/moderate`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ action, rejection_reason })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setMessage(data.message);
+      if (rejectModalJob) setRejectModalJob(null);
+      fetchAdminData();
+    } catch (err) {
+      alert(err.message || 'Failed to moderate job');
+    }
+  };
+
+  // Toggle User Block/Unblock (A03)
+  const handleToggleUserStatus = async (userId, currentStatus) => {
+    const newStatus = currentStatus === 'active' ? 'blocked' : 'active';
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setMessage(data.message);
+      fetchAdminData();
+    } catch (err) {
+      alert(err.message || 'Failed to update user status');
+    }
+  };
+
+  // Companies Management in A04
   const openAddCompany = () => {
     setEditingCompany(null);
     setCompanyForm({
@@ -127,10 +196,7 @@ export function AdminDashboard() {
 
   const handleSaveCompany = async (e) => {
     e.preventDefault();
-    if (!companyForm.name.trim()) {
-      alert('Company Name is required.');
-      return;
-    }
+    if (!companyForm.name.trim()) return alert('Company Name is required.');
     setCompanySaving(true);
     try {
       const url = editingCompany ? `/api/admin/companies/${editingCompany.id}` : '/api/admin/companies';
@@ -166,689 +232,935 @@ export function AdminDashboard() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      setMessage(data.message || 'Company removed successfully.');
+      setMessage(data.message || 'Company removed.');
       fetchAdminData();
     } catch (err) {
       alert(err.message || 'Failed to delete company');
     }
   };
 
-  // Moderate Job: Approve or Reject
-  const handleModerateJob = async (jobId, action, rejection_reason = '') => {
+  // Add Category (A06)
+  const handleAddCategory = async (e) => {
+    e.preventDefault();
+    if (!newCatName.trim()) return;
+    setCatSaving(true);
     try {
-      const res = await fetch(`/api/admin/jobs/${jobId}/moderate`, {
-        method: 'PATCH',
+      const res = await fetch('/api/admin/categories', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ action, rejection_reason })
+        body: JSON.stringify({ name: newCatName.trim() })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-
       setMessage(data.message);
-      if (rejectModalJob) setRejectModalJob(null);
+      setNewCatName('');
       fetchAdminData();
     } catch (err) {
-      alert(err.message || 'Failed to moderate job');
+      alert(err.message || 'Failed to add category');
+    } finally {
+      setCatSaving(false);
     }
   };
 
-  // Toggle User Block/Unblock
-  const handleToggleUserStatus = async (userId, currentStatus) => {
-    const newStatus = currentStatus === 'active' ? 'blocked' : 'active';
+  const handleDeleteCategory = async (id, name) => {
+    if (!confirm(`Delete category '${name}'?`)) return;
     try {
-      const res = await fetch(`/api/admin/users/${userId}/status`, {
-        method: 'PATCH',
+      const res = await fetch(`/api/admin/categories/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setMessage(data.message);
+      fetchAdminData();
+    } catch (err) {
+      alert(err.message || 'Failed to delete category');
+    }
+  };
+
+  // Save Settings (A08)
+  const handleSaveSettings = async (e) => {
+    e.preventDefault();
+    setSettingsSaving(true);
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify(settings)
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-
-      setMessage(data.message);
-      fetchAdminData();
+      setMessage('Platform configuration rules saved successfully!');
     } catch (err) {
-      alert(err.message || 'Failed to update user status');
+      alert(err.message || 'Failed to save settings');
+    } finally {
+      setSettingsSaving(false);
     }
+  };
+
+  // Export CSV Report (A07)
+  const handleExportCSV = () => {
+    const csvContent = "data:text/csv;charset=utf-8," + 
+      "Metric,Value\n" + 
+      `Total Users,${stats?.totalUsers || 0}\n` + 
+      `Candidates,${stats?.candidates || 0}\n` + 
+      `Recruiters,${stats?.recruiters || 0}\n` + 
+      `Total Jobs,${stats?.totalJobs || 0}\n` + 
+      `Pending Jobs,${stats?.pendingJobs || 0}\n` + 
+      `Approved Jobs,${stats?.approvedJobs || 0}\n` + 
+      `Total Applications,${stats?.totalApplications || 0}\n`;
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `workpulse_platform_report_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
-    <div style={{ maxWidth: '1280px', margin: '30px auto 80px', padding: '0 24px' }}>
-      {/* Top Admin Header */}
-      <div className="card" style={{ padding: '28px', marginBottom: '28px', background: 'linear-gradient(135deg, #064e3b 0%, #022c22 100%)', color: '#fff' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#6ee7b7', fontWeight: 700 }}>
-              <Shield size={18} /> PLATFORM ADMINISTRATOR CONTROL PANEL
-            </div>
-            <h1 style={{ fontSize: '1.8rem', fontWeight: 800, marginTop: '4px', fontFamily: 'var(--font-display)' }}>
-              Moderation & Governance
-            </h1>
-            <p style={{ color: '#a7f3d0', fontSize: '0.92rem', marginTop: '2px' }}>
-              Review recruiter job submissions, moderate listings, monitor user compliance, and track applications.
-            </p>
-          </div>
-        </div>
-
-        {/* Real-time Metrics from TiDB */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-          <div>
-            <div style={{ fontSize: '0.78rem', color: '#a7f3d0' }}>Pending Approval</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#fbbf24' }}>
-              {stats?.pendingJobs || pendingJobs.length}
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: '0.78rem', color: '#a7f3d0' }}>Live / Approved Jobs</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#34d399' }}>
-              {stats?.approvedJobs || 0}
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: '0.78rem', color: '#a7f3d0' }}>Registered Candidates</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800 }}>
-              {stats?.candidates || 0}
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: '0.78rem', color: '#a7f3d0' }}>Active Recruiters</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800 }}>
-              {stats?.recruiters || 0}
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: '0.78rem', color: '#a7f3d0' }}>Total Applications</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800 }}>
-              {stats?.totalApplications || 0}
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <div style={{ maxWidth: '1360px', margin: '20px auto 80px', padding: '0 24px' }}>
+      {/* Success Notification message */}
       {message && (
-        <div style={{ background: '#d1fae5', color: '#065f46', padding: '12px 18px', borderRadius: '8px', fontSize: '0.9rem', marginBottom: '20px' }}>
-          {message}
+        <div style={{ background: '#d1fae5', color: '#065f46', padding: '12px 18px', borderRadius: '8px', fontSize: '0.9rem', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>{message}</span>
+          <button onClick={() => setMessage('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#065f46' }}>
+            <X size={16} />
+          </button>
         </div>
       )}
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--border-color)', marginBottom: '24px' }}>
-        <button 
-          id="tab-admin-pending-btn"
-          onClick={() => setActiveTab('pending-jobs')}
-          style={{
-            padding: '12px 20px',
-            border: 'none',
-            background: 'none',
-            fontWeight: 700,
-            fontSize: '0.95rem',
-            cursor: 'pointer',
-            color: activeTab === 'pending-jobs' ? '#059669' : 'var(--text-muted)',
-            borderBottom: activeTab === 'pending-jobs' ? '3px solid #059669' : '3px solid transparent'
-          }}>
-          Pending Approvals ({pendingJobs.length})
-        </button>
-
-        <button 
-          id="tab-admin-all-jobs-btn"
-          onClick={() => setActiveTab('all-jobs')}
-          style={{
-            padding: '12px 20px',
-            border: 'none',
-            background: 'none',
-            fontWeight: 700,
-            fontSize: '0.95rem',
-            cursor: 'pointer',
-            color: activeTab === 'all-jobs' ? '#059669' : 'var(--text-muted)',
-            borderBottom: activeTab === 'all-jobs' ? '3px solid #059669' : '3px solid transparent'
-          }}>
-          All Jobs Database ({allJobs.length})
-        </button>
-
-        <button 
-          id="tab-admin-companies-btn"
-          onClick={() => setActiveTab('companies')}
-          style={{
-            padding: '12px 20px',
-            border: 'none',
-            background: 'none',
-            fontWeight: 700,
-            fontSize: '0.95rem',
-            cursor: 'pointer',
-            color: activeTab === 'companies' ? '#059669' : 'var(--text-muted)',
-            borderBottom: activeTab === 'companies' ? '3px solid #059669' : '3px solid transparent',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}>
-          <Building2 size={16} /> Verified Companies ({companies.length})
-        </button>
-
-        <button 
-          id="tab-admin-users-btn"
-          onClick={() => setActiveTab('users')}
-          style={{
-            padding: '12px 20px',
-            border: 'none',
-            background: 'none',
-            fontWeight: 700,
-            fontSize: '0.95rem',
-            cursor: 'pointer',
-            color: activeTab === 'users' ? '#059669' : 'var(--text-muted)',
-            borderBottom: activeTab === 'users' ? '3px solid #059669' : '3px solid transparent'
-          }}>
-          User Management ({users.length})
-        </button>
-
-        <button 
-          id="tab-admin-apps-btn"
-          onClick={() => setActiveTab('applications')}
-          style={{
-            padding: '12px 20px',
-            border: 'none',
-            background: 'none',
-            fontWeight: 700,
-            fontSize: '0.95rem',
-            cursor: 'pointer',
-            color: activeTab === 'applications' ? '#059669' : 'var(--text-muted)',
-            borderBottom: activeTab === 'applications' ? '3px solid #059669' : '3px solid transparent'
-          }}>
-          Applications Monitor ({applications.length})
-        </button>
-
-        <button 
-          id="tab-admin-analytics-btn"
-          onClick={() => setActiveTab('analytics')}
-          style={{
-            padding: '12px 20px',
-            border: 'none',
-            background: 'none',
-            fontWeight: 700,
-            fontSize: '0.95rem',
-            cursor: 'pointer',
-            color: activeTab === 'analytics' ? '#059669' : 'var(--text-muted)',
-            borderBottom: activeTab === 'analytics' ? '3px solid #059669' : '3px solid transparent',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}>
-          <BarChart2 size={16} /> Platform Analytics & Charts
-        </button>
+      {/* Strict 7-Section Navigation Menu (Exact PDF Page 7 Specification: A02 to A08) */}
+      <div style={{ 
+        display: 'flex', 
+        flexWrap: 'wrap', 
+        gap: '6px', 
+        background: '#0f172a', 
+        padding: '8px', 
+        borderRadius: '12px', 
+        border: '1px solid #1e293b', 
+        marginBottom: '26px' 
+      }}>
+        {[
+          { id: 'A02', label: 'A02 • DASHBOARD', icon: ShieldCheck, badge: null },
+          { id: 'A03', label: 'A03 • USERS', icon: Users, badge: users.length },
+          { id: 'A04', label: 'A04 • JOBS', icon: Briefcase, badge: pendingJobs.length > 0 ? `${pendingJobs.length} Pending` : `${allJobs.length}` },
+          { id: 'A05', label: 'A05 • APPLICATIONS', icon: FileText, badge: applications.length },
+          { id: 'A06', label: 'A06 • CATEGORIES', icon: Tag, badge: categoriesData.categories?.length || 0 },
+          { id: 'A07', label: 'A07 • REPORTS', icon: BarChart2, badge: null },
+          { id: 'A08', label: 'A08 • SETTINGS', icon: Settings, badge: null },
+        ].map(tab => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '0.86rem',
+                fontWeight: 700,
+                background: isActive ? '#059669' : 'transparent',
+                color: isActive ? '#ffffff' : '#94a3b8',
+                transition: 'all 0.2s',
+              }}>
+              <Icon size={16} />
+              <span>{tab.label}</span>
+              {tab.badge !== null && (
+                <span style={{ 
+                  background: isActive ? 'rgba(0,0,0,0.25)' : '#1e293b', 
+                  color: isActive ? '#fff' : '#cbd5e1', 
+                  fontSize: '0.72rem', 
+                  padding: '2px 7px', 
+                  borderRadius: '9999px',
+                  fontWeight: 800
+                }}>
+                  {tab.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {/* TAB 1: PENDING JOBS APPROVAL QUEUE (CRITICAL BUSINESS RULE) */}
-      {activeTab === 'pending-jobs' && (
+      {/* ========================================================
+          A02 • DASHBOARD (Overview Metrics: Users, Recruiters, Jobs)
+          ======================================================== */}
+      {activeTab === 'A02' && (
         <div>
-          <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '8px', padding: '12px 18px', color: '#92400e', fontSize: '0.88rem', marginBottom: '20px' }}>
-            ⚡ <strong>Critical Business Rule (PDF Page 2 & 7):</strong> Jobs posted by recruiters are held in this pending queue. Candidates cannot view or apply to a job until an Admin approves it!
+          {/* Top Banner */}
+          <div className="card" style={{ padding: '28px', marginBottom: '24px', background: 'linear-gradient(135deg, #064e3b 0%, #022c22 100%)', color: '#fff' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+              <div>
+                <span style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#6ee7b7', padding: '3px 10px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 800 }}>
+                  A02 • MASTER DASHBOARD
+                </span>
+                <h1 style={{ fontSize: '1.9rem', fontWeight: 800, marginTop: '8px', margin: 0, fontFamily: 'var(--font-display)' }}>
+                  Platform Executive Overview
+                </h1>
+                <p style={{ color: '#a7f3d0', fontSize: '0.92rem', marginTop: '4px' }}>
+                  Live metrics, user volumes, job approvals status, and system telemetry from TiDB Cloud.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button 
+                  onClick={() => setActiveTab('A04')}
+                  className="btn btn-primary"
+                  style={{ backgroundColor: '#10b981', color: '#022c22', fontWeight: 800, border: 'none' }}>
+                  Review Pending Jobs ({pendingJobs.length})
+                </button>
+              </div>
+            </div>
+
+            {/* Metrics Cards Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '14px', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+              <div>
+                <div style={{ fontSize: '0.78rem', color: '#a7f3d0' }}>Total Registered Users</div>
+                <div style={{ fontSize: '1.7rem', fontWeight: 800 }}>{stats?.totalUsers || users.length}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.78rem', color: '#a7f3d0' }}>Registered Candidates</div>
+                <div style={{ fontSize: '1.7rem', fontWeight: 800, color: '#38bdf8' }}>{stats?.candidates || 0}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.78rem', color: '#a7f3d0' }}>Active Recruiters</div>
+                <div style={{ fontSize: '1.7rem', fontWeight: 800, color: '#c084fc' }}>{stats?.recruiters || 0}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.78rem', color: '#a7f3d0' }}>Pending Approval</div>
+                <div style={{ fontSize: '1.7rem', fontWeight: 800, color: '#fbbf24' }}>{pendingJobs.length}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.78rem', color: '#a7f3d0' }}>Live / Approved Jobs</div>
+                <div style={{ fontSize: '1.7rem', fontWeight: 800, color: '#34d399' }}>{stats?.approvedJobs || allJobs.filter(j => j.status === 'approved').length}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.78rem', color: '#a7f3d0' }}>Verified Companies</div>
+                <div style={{ fontSize: '1.7rem', fontWeight: 800, color: '#f472b6' }}>{companies.length}</div>
+              </div>
+            </div>
           </div>
 
-          {pendingJobs.length === 0 ? (
-            <div className="card" style={{ padding: '60px 20px', textAlign: 'center' }}>
-              <CheckCircle size={44} color="#10b981" style={{ margin: '0 auto 12px' }} />
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Approval queue is clear!</h3>
-              <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '6px' }}>
-                All recruiter job postings have been reviewed.
+          {/* Quick Action Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+            {/* Pending Jobs Quick Box */}
+            <div className="card" style={{ padding: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                  ⏳ Pending Moderation Queue
+                </h3>
+                <span className="badge badge-pending">{pendingJobs.length} Awaiting</span>
+              </div>
+              {pendingJobs.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>No pending jobs waiting for moderation. Quality gate is clear.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {pendingJobs.slice(0, 3).map(j => (
+                    <div key={j.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', background: 'var(--bg-subtle)', borderRadius: '8px' }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>{j.title}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{j.company_name} &bull; {j.location}</div>
+                      </div>
+                      <button 
+                        onClick={() => handleModerateJob(j.id, 'approve')}
+                        className="btn btn-primary btn-sm"
+                        style={{ backgroundColor: '#059669', borderColor: '#059669', fontSize: '0.75rem', padding: '5px 10px' }}>
+                        Quick Approve
+                      </button>
+                    </div>
+                  ))}
+                  <button onClick={() => setActiveTab('A04')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', textAlign: 'left', marginTop: '6px' }}>
+                    View all in A04 • Jobs &rarr;
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Quick System Governance & Rules */}
+            <div className="card" style={{ padding: '24px' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 14px' }}>
+                🛡️ System Governance Rules
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.85rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--bg-subtle)', borderRadius: '6px' }}>
+                  <span>Job Moderation Policy:</span>
+                  <strong style={{ color: '#059669' }}>Mandatory Approval Active</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--bg-subtle)', borderRadius: '6px' }}>
+                  <span>Database Engine:</span>
+                  <strong style={{ color: '#38bdf8' }}>TiDB Cloud Serverless (SSL)</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--bg-subtle)', borderRadius: '6px' }}>
+                  <span>Verified Employers:</span>
+                  <strong>{companies.length} Organizations</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          A03 • USERS (Candidate, Recruiter, Block / Unblock)
+          ======================================================== */}
+      {activeTab === 'A03' && (
+        <div className="card" style={{ padding: '28px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '22px' }}>
+            <div>
+              <span style={{ color: '#059669', fontSize: '0.78rem', fontWeight: 800 }}>A03 • USER GOVERNANCE</span>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', margin: '4px 0 0' }}>
+                Candidates & Recruiters Directory
+              </h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '2px' }}>
+                Audit accounts, examine contact info, and enforce access controls via block/unblock.
               </p>
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {pendingJobs.map((job) => (
-                <div key={job.id} className="card" style={{ padding: '28px', borderLeft: '5px solid #f59e0b' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span className="badge badge-pending">
-                          Awaiting Review
+
+            {/* Filter buttons & Search */}
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', background: 'var(--bg-subtle)', borderRadius: '8px', padding: '3px' }}>
+                {['all', 'candidate', 'recruiter'].map(r => (
+                  <button 
+                    key={r}
+                    onClick={() => setUserRoleFilter(r)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: userRoleFilter === r ? '#059669' : 'transparent',
+                      color: userRoleFilter === r ? '#fff' : 'var(--text-main)',
+                      fontWeight: 700,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      textTransform: 'capitalize'
+                    }}>
+                    {r}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ position: 'relative' }}>
+                <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input 
+                  type="text" 
+                  placeholder="Search user..."
+                  className="form-control"
+                  style={{ paddingLeft: '32px', fontSize: '0.85rem', width: '200px' }}
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Users Table */}
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+              <thead>
+                <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                  <th style={{ padding: '12px 14px' }}>USER</th>
+                  <th style={{ padding: '12px 14px' }}>ROLE</th>
+                  <th style={{ padding: '12px 14px' }}>PHONE</th>
+                  <th style={{ padding: '12px 14px' }}>STATUS</th>
+                  <th style={{ padding: '12px 14px' }}>JOINED</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'right' }}>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users
+                  .filter(u => userRoleFilter === 'all' || u.role === userRoleFilter)
+                  .filter(u => !userSearch || u.name?.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase()))
+                  .map(u => (
+                    <tr key={u.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <td style={{ padding: '14px' }}>
+                        <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{u.name}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{u.email}</div>
+                      </td>
+                      <td style={{ padding: '14px' }}>
+                        <span style={{ 
+                          padding: '3px 8px', 
+                          borderRadius: '4px', 
+                          fontSize: '0.75rem', 
+                          fontWeight: 700,
+                          background: u.role === 'recruiter' ? '#ede9fe' : '#e0f2fe',
+                          color: u.role === 'recruiter' ? '#6d28d9' : '#0369a1',
+                          textTransform: 'capitalize'
+                        }}>
+                          {u.role}
                         </span>
-                        <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
-                          Submitted on {new Date(job.created_at).toLocaleString()}
+                      </td>
+                      <td style={{ padding: '14px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                        {u.phone || '—'}
+                      </td>
+                      <td style={{ padding: '14px' }}>
+                        <span style={{ 
+                          padding: '3px 8px', 
+                          borderRadius: '4px', 
+                          fontSize: '0.75rem', 
+                          fontWeight: 700,
+                          background: u.status === 'active' ? '#d1fae5' : '#fee2e2',
+                          color: u.status === 'active' ? '#065f46' : '#991b1b',
+                          textTransform: 'uppercase'
+                        }}>
+                          {u.status}
                         </span>
-                      </div>
+                      </td>
+                      <td style={{ padding: '14px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                        {new Date(u.created_at).toLocaleDateString()}
+                      </td>
+                      <td style={{ padding: '14px', textAlign: 'right' }}>
+                        {u.status === 'active' ? (
+                          <button 
+                            onClick={() => handleToggleUserStatus(u.id, u.status)}
+                            className="btn btn-secondary btn-sm"
+                            style={{ color: '#dc2626', borderColor: '#fca5a5', padding: '5px 10px', fontSize: '0.78rem' }}>
+                            <UserX size={14} /> Block
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => handleToggleUserStatus(u.id, u.status)}
+                            className="btn btn-primary btn-sm"
+                            style={{ backgroundColor: '#059669', borderColor: '#059669', padding: '5px 10px', fontSize: '0.78rem' }}>
+                            <UserCheck size={14} /> Unblock
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
-                      <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', marginTop: '8px' }}>
-                        {job.title}
-                      </h2>
-                      <div style={{ fontSize: '0.9rem', color: '#4338ca', fontWeight: 600 }}>
-                        Company: {job.company_name || 'TechCorp'} &bull; Recruiter: {job.recruiter_name} ({job.recruiter_email})
-                      </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '8px', fontSize: '0.85rem', color: '#64748b' }}>
-                        <span>📂 {job.category}</span>
-                        <span>📍 {job.location}</span>
-                        <span>⏱ {job.job_type}</span>
-                        <span>🎓 {job.experience_level}</span>
-                        <span>💰 ₹{(job.salary_min / 100000).toFixed(1)}L - ₹{(job.salary_max / 100000).toFixed(1)}L PA</span>
-                      </div>
-                    </div>
+      {/* ========================================================
+          A04 • JOBS (Pending Jobs, Approve, Reject, Live Jobs, Companies)
+          ======================================================== */}
+      {activeTab === 'A04' && (
+        <div>
+          {/* Sub Navigation */}
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+            <button 
+              onClick={() => setJobSubTab('pending')}
+              className={`btn ${jobSubTab === 'pending' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ backgroundColor: jobSubTab === 'pending' ? '#059669' : '', borderColor: '#059669', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Clock size={16} /> Pending Approvals ({pendingJobs.length})
+            </button>
+            <button 
+              onClick={() => setJobSubTab('all-jobs')}
+              className={`btn ${jobSubTab === 'all-jobs' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ backgroundColor: jobSubTab === 'all-jobs' ? '#059669' : '', borderColor: '#059669', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Briefcase size={16} /> All Jobs Database ({allJobs.length})
+            </button>
+            <button 
+              onClick={() => setJobSubTab('companies')}
+              className={`btn ${jobSubTab === 'companies' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ backgroundColor: jobSubTab === 'companies' ? '#059669' : '', borderColor: '#059669', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Building2 size={16} /> Verified Companies ({companies.length})
+            </button>
+          </div>
 
-                    {/* Action Buttons: Approve vs Reject */}
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                      <button 
-                        id={`reject-job-btn-${job.id}`}
-                        onClick={() => {
-                          setRejectModalJob(job);
-                          setRejectReason('');
-                        }}
-                        className="btn btn-danger" style={{ padding: '8px 16px' }}>
-                        <X size={16} /> Reject
-                      </button>
+          {/* SUB-VIEW 1: PENDING JOBS APPROVAL QUEUE */}
+          {jobSubTab === 'pending' && (
+            <div>
+              <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '8px', padding: '12px 18px', color: '#92400e', fontSize: '0.88rem', marginBottom: '20px' }}>
+                ⚡ <strong>Critical Business Rule (PDF Page 2 & 7):</strong> Jobs submitted by recruiters are held here until an Admin approves them.
+              </div>
 
-                      <button 
-                        id={`approve-job-btn-${job.id}`}
-                        onClick={() => handleModerateJob(job.id, 'approve')}
-                        className="btn btn-success" style={{ padding: '8px 20px', fontWeight: 700 }}>
-                        <Check size={16} /> Approve & Publish
-                      </button>
-                    </div>
-                  </div>
-
-                  <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-color)' }}>
-                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', textTransform: 'uppercase', marginBottom: '4px' }}>
-                      Job Description Preview:
-                    </div>
-                    <p style={{ fontSize: '0.9rem', color: '#334155', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
-                      {job.description}
-                    </p>
-                  </div>
-
-                  {job.requirements && (
-                    <div style={{ marginTop: '12px' }}>
-                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', textTransform: 'uppercase', marginBottom: '4px' }}>
-                        Requirements:
-                      </div>
-                      <p style={{ fontSize: '0.88rem', color: '#334155', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
-                        {job.requirements}
-                      </p>
-                    </div>
-                  )}
+              {pendingJobs.length === 0 ? (
+                <div className="card" style={{ padding: '60px 20px', textAlign: 'center' }}>
+                  <CheckCircle size={44} color="#10b981" style={{ margin: '0 auto 12px' }} />
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Approval queue is clear!</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '6px' }}>
+                    All recruiter job postings have been reviewed.
+                  </p>
                 </div>
-              ))}
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  {pendingJobs.map(job => (
+                    <div key={job.id} className="card" style={{ padding: '24px', borderLeft: '5px solid #f59e0b' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px' }}>
+                        <div>
+                          <span className="badge badge-pending">Awaiting Review</span>
+                          <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '8px' }}>
+                            {job.title}
+                          </h2>
+                          <div style={{ fontSize: '0.88rem', color: 'var(--primary)', fontWeight: 600 }}>
+                            Company: {job.company_name} &bull; Recruiter: {job.recruiter_name} ({job.recruiter_email})
+                          </div>
+                          <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                            📍 {job.location} &bull; {job.job_type} &bull; Experience: {job.experience_level} &bull; Salary: ₹{(job.salary_min / 100000).toFixed(1)}L - ₹{(job.salary_max / 100000).toFixed(1)}L
+                          </div>
+                          <p style={{ fontSize: '0.9rem', color: 'var(--text-main)', marginTop: '12px', lineHeight: 1.5 }}>
+                            {job.description}
+                          </p>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button 
+                            onClick={() => handleModerateJob(job.id, 'approve')}
+                            className="btn btn-primary"
+                            style={{ backgroundColor: '#059669', borderColor: '#059669', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Check size={16} /> Approve Job
+                          </button>
+                          <button 
+                            onClick={() => {
+                              setRejectModalJob(job);
+                              setRejectReason('');
+                            }}
+                            className="btn btn-secondary"
+                            style={{ color: '#dc2626', borderColor: '#fca5a5', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <X size={16} /> Reject with Note
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* SUB-VIEW 2: ALL JOBS */}
+          {jobSubTab === 'all-jobs' && (
+            <div className="card" style={{ padding: '24px' }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                      <th style={{ padding: '10px' }}>JOB TITLE</th>
+                      <th style={{ padding: '10px' }}>COMPANY</th>
+                      <th style={{ padding: '10px' }}>STATUS</th>
+                      <th style={{ padding: '10px' }}>SALARY</th>
+                      <th style={{ padding: '10px' }}>DATE</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allJobs.map(j => (
+                      <tr key={j.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                        <td style={{ padding: '12px', fontWeight: 700, color: 'var(--text-main)' }}>{j.title}</td>
+                        <td style={{ padding: '12px', color: 'var(--primary)' }}>{j.company_name}</td>
+                        <td style={{ padding: '12px' }}>
+                          <span className={`badge ${j.status === 'approved' ? 'badge-approved' : j.status === 'pending' ? 'badge-pending' : 'badge-rejected'}`}>
+                            {j.status}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px', fontSize: '0.85rem' }}>₹{(j.salary_min / 100000).toFixed(1)}L - ₹{(j.salary_max / 100000).toFixed(1)}L</td>
+                        <td style={{ padding: '12px', fontSize: '0.82rem', color: 'var(--text-muted)' }}>{new Date(j.created_at).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* SUB-VIEW 3: VERIFIED COMPANIES */}
+          {jobSubTab === 'companies' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+                    Admin-Verified Companies
+                  </h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '2px 0 0' }}>
+                    Employers allowed to post and be showcased in the job directory.
+                  </p>
+                </div>
+                <button 
+                  onClick={openAddCompany}
+                  className="btn btn-primary"
+                  style={{ backgroundColor: '#059669', borderColor: '#059669', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Plus size={16} /> Add Company
+                </button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '18px' }}>
+                {companies.map(c => (
+                  <div key={c.id} className="card" style={{ padding: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <img src={c.logo_url} alt={c.name} style={{ width: '42px', height: '42px', borderRadius: '8px', objectFit: 'cover' }} />
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-main)' }}>{c.name}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{c.industry}</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button onClick={() => openEditCompany(c)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+                          <Edit size={15} color="var(--text-muted)" />
+                        </button>
+                        <button onClick={() => handleDeleteCompany(c.id, c.name)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+                          <Trash2 size={15} color="#ef4444" />
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '12px' }}>
+                      📍 {c.location || 'India'} &bull; {c.jobs_count || 0} Open Jobs
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
       )}
 
-      {/* TAB 2: ALL JOBS */}
-      {activeTab === 'all-jobs' && (
-        <div className="card" style={{ padding: '24px', overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid var(--border-color)', color: '#64748b' }}>
-                <th style={{ padding: '12px 16px' }}>Job Title</th>
-                <th style={{ padding: '12px 16px' }}>Company</th>
-                <th style={{ padding: '12px 16px' }}>Category</th>
-                <th style={{ padding: '12px 16px' }}>Status</th>
-                <th style={{ padding: '12px 16px' }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allJobs.map(job => (
-                <tr key={job.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                  <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>{job.title}</td>
-                  <td style={{ padding: '12px 16px', color: '#475569' }}>{job.company_name}</td>
-                  <td style={{ padding: '12px 16px', color: '#64748b' }}>{job.category}</td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <span className={`badge badge-${job.status}`}>{job.status}</span>
-                  </td>
-                  <td style={{ padding: '12px 16px' }}>
-                    {job.status === 'pending' && (
-                      <button 
-                        onClick={() => handleModerateJob(job.id, 'approve')}
-                        className="btn btn-success btn-sm">
-                        Approve
-                      </button>
-                    )}
-                    {job.status === 'approved' && (
-                      <button 
-                        onClick={() => handleModerateJob(job.id, 'reject', 'Revoked by Admin.')}
-                        className="btn btn-danger btn-sm">
-                        Revoke
-                      </button>
-                    )}
-                  </td>
+      {/* ========================================================
+          A05 • APPLICATIONS (Monitor, Status, Audit Reports)
+          ======================================================== */}
+      {activeTab === 'A05' && (
+        <div className="card" style={{ padding: '28px' }}>
+          <div style={{ marginBottom: '22px' }}>
+            <span style={{ color: '#059669', fontSize: '0.78rem', fontWeight: 800 }}>A05 • APPLICATION AUDIT</span>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', margin: '4px 0 0' }}>
+              Candidate Applications Monitor
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '2px' }}>
+              Real-time progression tracking across hiring pipelines.
+            </p>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+              <thead>
+                <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                  <th style={{ padding: '12px' }}>CANDIDATE</th>
+                  <th style={{ padding: '12px' }}>TARGET JOB</th>
+                  <th style={{ padding: '12px' }}>COMPANY</th>
+                  <th style={{ padding: '12px' }}>PIPELINE STATUS</th>
+                  <th style={{ padding: '12px' }}>DATE APPLIED</th>
+                  <th style={{ padding: '12px' }}>RESUME</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {applications.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                      No applications recorded yet.
+                    </td>
+                  </tr>
+                ) : (
+                  applications.map(app => (
+                    <tr key={app.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <td style={{ padding: '12px' }}>
+                        <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{app.candidate_name}</div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{app.candidate_email}</div>
+                      </td>
+                      <td style={{ padding: '12px', fontWeight: 600, color: 'var(--text-main)' }}>{app.job_title}</td>
+                      <td style={{ padding: '12px', color: 'var(--primary)', fontWeight: 600 }}>{app.company_name}</td>
+                      <td style={{ padding: '12px' }}>
+                        <span style={{ 
+                          padding: '3px 8px', 
+                          borderRadius: '4px', 
+                          fontSize: '0.75rem', 
+                          fontWeight: 700,
+                          textTransform: 'capitalize',
+                          background: app.status === 'selected' ? '#d1fae5' : app.status === 'interview' ? '#ede9fe' : app.status === 'shortlisted' ? '#e0f2fe' : '#f1f5f9',
+                          color: app.status === 'selected' ? '#065f46' : app.status === 'interview' ? '#6d28d9' : app.status === 'shortlisted' ? '#0369a1' : '#334155'
+                        }}>
+                          {app.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                        {new Date(app.created_at).toLocaleDateString()}
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        {app.resume_url ? (
+                          <a href={app.resume_url} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}>
+                            <FileText size={14} /> View File
+                          </a>
+                        ) : '—'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      {/* TAB 3: USER MANAGEMENT */}
-      {activeTab === 'users' && (
-        <div className="card" style={{ padding: '24px', overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid var(--border-color)', color: '#64748b' }}>
-                <th style={{ padding: '12px 16px' }}>Name</th>
-                <th style={{ padding: '12px 16px' }}>Email</th>
-                <th style={{ padding: '12px 16px' }}>Role</th>
-                <th style={{ padding: '12px 16px' }}>Status</th>
-                <th style={{ padding: '12px 16px' }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map(u => (
-                <tr key={u.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                  <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>{u.name}</td>
-                  <td style={{ padding: '12px 16px', color: '#64748b' }}>{u.email}</td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <span style={{ textTransform: 'capitalize', fontWeight: 600, color: u.role === 'recruiter' ? '#7c3aed' : '#2563eb' }}>
-                      {u.role}
-                    </span>
-                  </td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <span className={`badge ${u.status === 'active' ? 'badge-approved' : 'badge-rejected'}`}>
-                      {u.status}
-                    </span>
-                  </td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <button 
-                      onClick={() => handleToggleUserStatus(u.id, u.status)}
-                      className={`btn btn-sm ${u.status === 'active' ? 'btn-danger' : 'btn-success'}`}>
-                      {u.status === 'active' ? 'Block User' : 'Unblock'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* TAB 4: APPLICATIONS MONITOR */}
-      {activeTab === 'applications' && (
-        <div className="card" style={{ padding: '24px', overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid var(--border-color)', color: '#64748b' }}>
-                <th style={{ padding: '12px 16px' }}>App Code</th>
-                <th style={{ padding: '12px 16px' }}>Job Opening</th>
-                <th style={{ padding: '12px 16px' }}>Candidate</th>
-                <th style={{ padding: '12px 16px' }}>Recruiter</th>
-                <th style={{ padding: '12px 16px' }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {applications.map(app => (
-                <tr key={app.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                  <td style={{ padding: '12px 16px', fontWeight: 700 }}>{app.application_code}</td>
-                  <td style={{ padding: '12px 16px', color: '#0f172a' }}>{app.job_title}</td>
-                  <td style={{ padding: '12px 16px' }}>{app.candidate_name} ({app.candidate_email})</td>
-                  <td style={{ padding: '12px 16px', color: '#64748b' }}>{app.company_name}</td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <span className={`badge badge-${app.status}`}>{app.status}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* TAB 5: PLATFORM ANALYTICS & CHARTS */}
-      {activeTab === 'analytics' && (
+      {/* ========================================================
+          A06 • CATEGORIES (Job Categories, Skills, Locations)
+          ======================================================== */}
+      {activeTab === 'A06' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* Top Platform Governance Ratio Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-            <div className="card" style={{ padding: '22px' }}>
-              <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>Job Approval Ratio</div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#10b981', marginTop: '4px' }}>
-                {allJobs.length > 0 
-                  ? Math.round((allJobs.filter(j => j.status === 'approved').length / allJobs.length) * 100) 
-                  : 0}%
+          {/* Categories Manager */}
+          <div className="card" style={{ padding: '28px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '20px' }}>
+              <div>
+                <span style={{ color: '#059669', fontSize: '0.78rem', fontWeight: 800 }}>A06 • MASTER CATALOG</span>
+                <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', margin: '4px 0 0' }}>
+                  Job Categories Catalog
+                </h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '2px' }}>
+                  Manage sectors displayed on the public landing page and search filters.
+                </p>
               </div>
-              <div style={{ fontSize: '0.78rem', color: '#059669', marginTop: '4px' }}>
-                {allJobs.filter(j => j.status === 'approved').length} of {allJobs.length} jobs approved
-              </div>
+
+              {/* Add category form */}
+              <form onSubmit={handleAddCategory} style={{ display: 'flex', gap: '8px' }}>
+                <input 
+                  type="text" 
+                  placeholder="New category name..."
+                  className="form-control"
+                  style={{ width: '220px' }}
+                  value={newCatName}
+                  onChange={(e) => setNewCatName(e.target.value)}
+                  required
+                />
+                <button 
+                  type="submit" 
+                  disabled={catSaving} 
+                  className="btn btn-primary"
+                  style={{ backgroundColor: '#059669', borderColor: '#059669', whiteSpace: 'nowrap' }}>
+                  {catSaving ? 'Adding...' : '+ Add Category'}
+                </button>
+              </form>
             </div>
 
-            <div className="card" style={{ padding: '22px' }}>
-              <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>Candidate to Recruiter Ratio</div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#6366f1', marginTop: '4px' }}>
-                {(stats?.recruiters && stats?.recruiters > 0) 
-                  ? ((stats?.candidates || 0) / stats.recruiters).toFixed(1) + ' : 1'
-                  : 'N/A'}
-              </div>
-              <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px' }}>
-                Talent supply per active employer
-              </div>
-            </div>
-
-            <div className="card" style={{ padding: '22px' }}>
-              <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>Platform Applications Total</div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '4px' }}>
-                {applications.length}
-              </div>
-              <div style={{ fontSize: '0.78rem', color: '#059669', marginTop: '4px' }}>
-                Total candidate submissions
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '14px' }}>
+              {(categoriesData.categories || []).map(cat => (
+                <div key={cat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-subtle)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>{cat.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{cat.jobs_count || 0} active jobs</div>
+                  </div>
+                  <button 
+                    onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                    title="Remove Category"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '4px' }}>
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-            {/* Category Breakdown Chart */}
-            <div className="card" style={{ padding: '26px' }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '18px' }}>
-                Job Openings by Industry
+          {/* Skills & Locations Badges */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            {/* Skills */}
+            <div className="card" style={{ padding: '24px' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Code2 size={18} color="#059669" /> In-Demand Skills Catalog
               </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {(analytics?.jobsByCategory || []).map((cat, i) => {
-                  const max = Math.max(...(analytics?.jobsByCategory || []).map(c => c.count), 1);
-                  const pct = Math.round((cat.count / max) * 100);
-                  const colors = ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
-                  return (
-                    <div key={cat.category}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '4px' }}>
-                        <span>{cat.category}</span>
-                        <span>{cat.count} listings</span>
-                      </div>
-                      <div style={{ width: '100%', height: '10px', background: 'var(--bg-subtle)', borderRadius: '6px', overflow: 'hidden' }}>
-                        <div style={{ width: `${Math.max(pct, 12)}%`, height: '100%', background: colors[i % colors.length], borderRadius: '6px' }}></div>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {['React', 'Node.js', 'Python', 'SQL / TiDB', 'AWS', 'TypeScript', 'Docker', 'GraphQL', 'Tailwind', 'REST APIs', 'DevOps'].map(s => (
+                  <span key={s} style={{ background: 'var(--bg-subtle)', color: 'var(--text-main)', padding: '4px 10px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600, border: '1px solid var(--border-color)' }}>
+                    {s}
+                  </span>
+                ))}
               </div>
             </div>
 
-            {/* Application Pipeline Status Breakdown */}
-            <div className="card" style={{ padding: '26px' }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '18px' }}>
-                Platform Application Status Breakdown
+            {/* Locations */}
+            <div className="card" style={{ padding: '24px' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MapPin size={18} color="#059669" /> Hiring Locations Master
               </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {(analytics?.appsByStatus || []).map(s => {
-                  const max = Math.max(...(analytics?.appsByStatus || []).map(a => a.count), 1);
-                  const pct = Math.round((s.count / max) * 100);
-                  return (
-                    <div key={s.status}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, textTransform: 'capitalize', color: 'var(--text-main)', marginBottom: '4px' }}>
-                        <span>{s.status}</span>
-                        <span>{s.count} candidates</span>
-                      </div>
-                      <div style={{ width: '100%', height: '10px', background: 'var(--bg-subtle)', borderRadius: '6px', overflow: 'hidden' }}>
-                        <div style={{ width: `${Math.max(pct, 12)}%`, height: '100%', background: 'var(--primary)', borderRadius: '6px' }}></div>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {['Bangalore, India', 'Chennai, India', 'Hyderabad, India', 'Mumbai, India', 'Pune, India', 'Delhi NCR', 'Remote (Worldwide)'].map(loc => (
+                  <span key={loc} style={{ background: 'var(--bg-subtle)', color: 'var(--text-main)', padding: '4px 10px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600, border: '1px solid var(--border-color)' }}>
+                    📍 {loc}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* TAB: COMPANIES MANAGEMENT (ADMIN EXCLUSIVE) */}
-      {activeTab === 'companies' && (
-        <div>
-          {/* Header Action Bar */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+      {/* ========================================================
+          A07 • REPORTS (Visual Intelligence: Users, Jobs, Applications)
+          ======================================================== */}
+      {activeTab === 'A07' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
             <div>
-              <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Building2 size={22} color="#059669" /> Verified Companies & Employers
+              <span style={{ color: '#059669', fontSize: '0.78rem', fontWeight: 800 }}>A07 • BUSINESS INTELLIGENCE</span>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', margin: '4px 0 0' }}>
+                Platform Analytics & Reports
               </h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '4px' }}>
-                Admin-exclusive directory. Add organizations permitted to hire or be showcased across the portal.
-              </p>
             </div>
 
             <button 
-              id="admin-add-company-btn"
-              onClick={openAddCompany}
-              className="btn btn-primary"
-              style={{ backgroundColor: '#059669', borderColor: '#059669', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px' }}>
-              <Plus size={18} /> Add New Company
+              onClick={handleExportCSV}
+              className="btn btn-secondary"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}>
+              <Download size={16} /> Export CSV Summary
             </button>
           </div>
 
-          {/* Search bar */}
-          <div style={{ marginBottom: '20px', position: 'relative', maxWidth: '420px' }}>
-            <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-            <input 
-              type="text" 
-              placeholder="Search companies by name, industry, or location..."
-              className="form-control"
-              value={companySearch}
-              onChange={(e) => setCompanySearch(e.target.value)}
-              style={{ paddingLeft: '38px' }}
-            />
-          </div>
-
-          {/* Companies Grid */}
-          {(() => {
-            const filtered = companies.filter(c => 
-              c.name?.toLowerCase().includes(companySearch.toLowerCase()) ||
-              c.industry?.toLowerCase().includes(companySearch.toLowerCase()) ||
-              c.location?.toLowerCase().includes(companySearch.toLowerCase())
-            );
-
-            if (filtered.length === 0) {
-              return (
-                <div className="card" style={{ padding: '60px 20px', textAlign: 'center' }}>
-                  <Building2 size={44} color="#94a3b8" style={{ margin: '0 auto 12px' }} />
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>No companies found</h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '6px' }}>
-                    Click "Add New Company" above to register organizations.
-                  </p>
-                </div>
-              );
-            }
-
-            return (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '20px' }}>
-                {filtered.map(comp => (
-                  <div key={comp.id} className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid var(--border-color)', transition: 'transform 0.2s, box-shadow 0.2s' }}>
-                    <div>
-                      {/* Top row: Logo, Name & Actions */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '14px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                          <img 
-                            src={comp.logo_url || 'https://images.unsplash.com/photo-1549923746-c502d488b3ea?w=150&auto=format&fit=crop&q=80'} 
-                            alt={comp.name}
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src = 'https://images.unsplash.com/photo-1549923746-c502d488b3ea?w=150&auto=format&fit=crop&q=80';
-                            }}
-                            style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover', border: '1px solid var(--border-color)' }}
-                          />
-                          <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                                {comp.name}
-                              </h3>
-                              <span title="Verified Enterprise" style={{ color: '#059669', display: 'inline-flex' }}>
-                                <CheckCircle2 size={16} />
-                              </span>
-                            </div>
-                            <div style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: 600, marginTop: '2px' }}>
-                              {comp.industry || 'Information Technology'}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Edit & Delete Buttons */}
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <button 
-                            onClick={() => openEditCompany(comp)}
-                            title="Edit Company"
-                            style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '6px', cursor: 'pointer', color: 'var(--text-main)' }}>
-                            <Edit size={15} />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteCompany(comp.id, comp.name)}
-                            title="Delete Company"
-                            style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '6px', padding: '6px', cursor: 'pointer', color: '#991b1b' }}>
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '20px' }}>
+            {/* Jobs Distribution by Sector */}
+            <div className="card" style={{ padding: '24px' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '16px' }}>
+                Jobs by Industry Sector
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {(analytics?.jobsByCategory || []).map(cat => {
+                  const max = Math.max(...(analytics?.jobsByCategory || []).map(c => c.count), 1);
+                  const pct = Math.round((cat.count / max) * 100);
+                  return (
+                    <div key={cat.category}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '4px' }}>
+                        <span>{cat.category}</span>
+                        <span>{cat.count} listings</span>
                       </div>
-
-                      {/* Location & Website */}
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginTop: '16px', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                        {comp.location && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <MapPin size={14} color="#059669" /> {comp.location}
-                          </div>
-                        )}
-                        {comp.website && (
-                          <a 
-                            href={comp.website.startsWith('http') ? comp.website : `https://${comp.website}`} 
-                            target="_blank" 
-                            rel="noreferrer"
-                            style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--primary)', textDecoration: 'none' }}>
-                            <Globe size={14} /> Website <ExternalLink size={11} />
-                          </a>
-                        )}
+                      <div style={{ width: '100%', height: '8px', background: 'var(--bg-subtle)', borderRadius: '6px', overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.max(pct, 15)}%`, height: '100%', background: '#059669', borderRadius: '6px' }}></div>
                       </div>
-
-                      {/* About */}
-                      <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '12px', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                        {comp.about || 'Verified corporate partner hiring through WorkPulse platform.'}
-                      </p>
                     </div>
-
-                    {/* Bottom Status bar */}
-                    <div style={{ marginTop: '18px', paddingTop: '14px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>
-                        Listed: {new Date(comp.created_at).toLocaleDateString()}
-                      </span>
-                      <span style={{ background: 'rgba(5, 150, 105, 0.1)', color: '#059669', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                        {comp.jobs_count || 0} Open Jobs
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-            );
-          })()}
+            </div>
+
+            {/* Applications Funnel */}
+            <div className="card" style={{ padding: '24px' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '16px' }}>
+                Candidate Pipeline Conversion Funnel
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {['applied', 'viewed', 'shortlisted', 'interview', 'selected'].map(stage => {
+                  const match = (analytics?.appsByStatus || []).find(a => a.status === stage);
+                  const count = match ? match.count : 0;
+                  return (
+                    <div key={stage}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 600, textTransform: 'capitalize', color: 'var(--text-main)', marginBottom: '4px' }}>
+                        <span>{stage}</span>
+                        <span>{count} candidates</span>
+                      </div>
+                      <div style={{ width: '100%', height: '8px', background: 'var(--bg-subtle)', borderRadius: '6px', overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.min(100, Math.max(count * 25, 12))}%`, height: '100%', background: '#6366f1', borderRadius: '6px' }}></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Add / Edit Company Modal */}
+      {/* ========================================================
+          A08 • SETTINGS (Platform Rules, Configuration)
+          ======================================================== */}
+      {activeTab === 'A08' && (
+        <div className="card" style={{ padding: '28px', maxWidth: '800px' }}>
+          <div style={{ marginBottom: '24px' }}>
+            <span style={{ color: '#059669', fontSize: '0.78rem', fontWeight: 800 }}>A08 • GOVERNANCE RULES</span>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', margin: '4px 0 0' }}>
+              Platform Rules & Configuration
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '2px' }}>
+              Enforce system-wide policies stored persistently in TiDB Cloud.
+            </p>
+          </div>
+
+          <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', background: 'var(--bg-subtle)', borderRadius: '8px' }}>
+              <div>
+                <strong style={{ color: 'var(--text-main)', display: 'block' }}>Mandatory Job Moderation</strong>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Require Admin approval before any recruiter job posting becomes public</span>
+              </div>
+              <input 
+                type="checkbox" 
+                checked={settings.require_admin_approval}
+                onChange={(e) => setSettings({ ...settings, require_admin_approval: e.target.checked })}
+                style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', background: 'var(--bg-subtle)', borderRadius: '8px' }}>
+              <div>
+                <strong style={{ color: 'var(--text-main)', display: 'block' }}>Allow Candidate Registration</strong>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Permit public visitors to sign up as job seekers</span>
+              </div>
+              <input 
+                type="checkbox" 
+                checked={settings.allow_candidate_registration}
+                onChange={(e) => setSettings({ ...settings, allow_candidate_registration: e.target.checked })}
+                style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', background: 'var(--bg-subtle)', borderRadius: '8px' }}>
+              <div>
+                <strong style={{ color: 'var(--text-main)', display: 'block' }}>Allow Recruiter Registration</strong>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Permit new hiring employers to create recruiter accounts</span>
+              </div>
+              <input 
+                type="checkbox" 
+                checked={settings.allow_recruiter_registration}
+                onChange={(e) => setSettings({ ...settings, allow_recruiter_registration: e.target.checked })}
+                style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+              />
+            </div>
+
+            <div style={{ padding: '14px', background: 'var(--bg-subtle)', borderRadius: '8px' }}>
+              <label style={{ fontWeight: 700, color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>
+                Maximum Active Jobs Allowed per Recruiter
+              </label>
+              <input 
+                type="number" 
+                className="form-control"
+                style={{ maxWidth: '180px' }}
+                value={settings.max_jobs_per_recruiter}
+                onChange={(e) => setSettings({ ...settings, max_jobs_per_recruiter: parseInt(e.target.value, 10) || 50 })}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', background: 'var(--bg-subtle)', borderRadius: '8px' }}>
+              <div>
+                <strong style={{ color: 'var(--text-main)', display: 'block' }}>Platform Maintenance Mode</strong>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Temporarily restrict candidate job applications for system maintenance</span>
+              </div>
+              <input 
+                type="checkbox" 
+                checked={settings.maintenance_mode}
+                onChange={(e) => setSettings({ ...settings, maintenance_mode: e.target.checked })}
+                style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+              />
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={settingsSaving} 
+              className="btn btn-primary"
+              style={{ backgroundColor: '#059669', borderColor: '#059669', padding: '12px', fontWeight: 800, alignSelf: 'flex-start' }}>
+              {settingsSaving ? 'Saving...' : '💾 Save Platform Rules'}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Modal: Add/Edit Company (In A04) */}
       {showCompanyModal && (
         <div className="modal-overlay" onClick={() => setShowCompanyModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px', padding: '32px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#059669', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Building2 size={20} />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
-                    {editingCompany ? 'Edit Company Profile' : 'Add New Verified Company'}
-                  </h3>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    Admin-controlled employer catalog
-                  </div>
-                </div>
-              </div>
-              <button onClick={() => setShowCompanyModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-                <X size={20} />
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px', padding: '30px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+                {editingCompany ? 'Edit Company' : 'Add Verified Company'}
+              </h3>
+              <button onClick={() => setShowCompanyModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <X size={18} />
               </button>
             </div>
 
@@ -858,7 +1170,6 @@ export function AdminDashboard() {
                 <input 
                   type="text" 
                   className="form-control"
-                  placeholder="e.g. Zoho, Microsoft, Freshworks..."
                   value={companyForm.name}
                   onChange={(e) => setCompanyForm({ ...companyForm, name: e.target.value })}
                   required
@@ -868,26 +1179,18 @@ export function AdminDashboard() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div className="form-group">
                   <label className="form-label">Industry</label>
-                  <select 
-                    className="form-control"
-                    value={companyForm.industry}
-                    onChange={(e) => setCompanyForm({ ...companyForm, industry: e.target.value })}>
-                    <option value="Information Technology">Information Technology</option>
-                    <option value="SaaS & Enterprise">SaaS & Enterprise</option>
-                    <option value="Data & Artificial Intelligence">Data & Artificial Intelligence</option>
-                    <option value="Fintech & Banking">Fintech & Banking</option>
-                    <option value="E-Commerce & Retail">E-Commerce & Retail</option>
-                    <option value="Healthcare & Bio">Healthcare & Bio</option>
-                    <option value="Consulting & Services">Consulting & Services</option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Headquarters / Location</label>
                   <input 
                     type="text" 
                     className="form-control"
-                    placeholder="e.g. Chennai, Bangalore, Remote"
+                    value={companyForm.industry}
+                    onChange={(e) => setCompanyForm({ ...companyForm, industry: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Location</label>
+                  <input 
+                    type="text" 
+                    className="form-control"
                     value={companyForm.location}
                     onChange={(e) => setCompanyForm({ ...companyForm, location: e.target.value })}
                   />
@@ -895,67 +1198,41 @@ export function AdminDashboard() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Website URL</label>
+                <label className="form-label">Website</label>
                 <input 
                   type="url" 
                   className="form-control"
-                  placeholder="https://company.com"
                   value={companyForm.website}
                   onChange={(e) => setCompanyForm({ ...companyForm, website: e.target.value })}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Logo Image URL</label>
+                <label className="form-label">Logo URL</label>
                 <input 
                   type="url" 
                   className="form-control"
-                  placeholder="https://example.com/logo.png"
                   value={companyForm.logo_url}
                   onChange={(e) => setCompanyForm({ ...companyForm, logo_url: e.target.value })}
                 />
-                {/* Preset quick-picks */}
-                <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Presets:</span>
-                  {[
-                    { label: '🏢 Tech', url: 'https://images.unsplash.com/photo-1549923746-c502d488b3ea?w=150&auto=format&fit=crop&q=80' },
-                    { label: '💻 SaaS', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80' },
-                    { label: '🚀 Modern', url: 'https://images.unsplash.com/photo-1572021335469-31706a17aaef?w=150&auto=format&fit=crop&q=80' },
-                    { label: '🌐 Global', url: 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=150&auto=format&fit=crop&q=80' }
-                  ].map(p => (
-                    <button 
-                      key={p.label}
-                      type="button"
-                      onClick={() => setCompanyForm({ ...companyForm, logo_url: p.url })}
-                      style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-subtle)', cursor: 'pointer' }}>
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               <div className="form-group">
-                <label className="form-label">About Organization</label>
+                <label className="form-label">About</label>
                 <textarea 
-                  className="form-control"
                   rows={3}
-                  placeholder="Brief description of the company, mission, and culture..."
+                  className="form-control"
                   value={companyForm.about}
                   onChange={(e) => setCompanyForm({ ...companyForm, about: e.target.value })}
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                 <button type="button" onClick={() => setShowCompanyModal(false)} className="btn btn-secondary" style={{ flex: 1 }}>
                   Cancel
                 </button>
-                <button 
-                  id="save-company-btn"
-                  type="submit" 
-                  disabled={companySaving} 
-                  className="btn btn-primary" 
-                  style={{ flex: 1.5, backgroundColor: '#059669', borderColor: '#059669' }}>
-                  {companySaving ? 'Saving...' : (editingCompany ? 'Update Company' : 'Add Company')}
+                <button type="submit" disabled={companySaving} className="btn btn-primary" style={{ flex: 1.5, backgroundColor: '#059669', borderColor: '#059669' }}>
+                  {companySaving ? 'Saving...' : 'Save Company'}
                 </button>
               </div>
             </form>
@@ -970,7 +1247,7 @@ export function AdminDashboard() {
             <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#991b1b', marginBottom: '4px' }}>
               Reject Job Submission
             </h3>
-            <p style={{ color: '#64748b', fontSize: '0.88rem', marginBottom: '16px' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginBottom: '16px' }}>
               Provide constructive feedback to {rejectModalJob.company_name} so they can update and resubmit.
             </p>
 
@@ -979,7 +1256,7 @@ export function AdminDashboard() {
               <textarea 
                 className="form-control"
                 rows={3}
-                placeholder="e.g. Please provide more clarity on required salary range and years of experience."
+                placeholder="e.g. Please clarify required years of experience and salary details."
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
               />
@@ -990,7 +1267,6 @@ export function AdminDashboard() {
                 Cancel
               </button>
               <button 
-                id="confirm-reject-job-btn"
                 type="button" 
                 onClick={() => handleModerateJob(rejectModalJob.id, 'reject', rejectReason)}
                 className="btn btn-danger" style={{ flex: 1.5 }}>
