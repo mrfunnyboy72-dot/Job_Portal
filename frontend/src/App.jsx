@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
-import { AuthModal } from './components/AuthModal';
 import { LandingPage } from './pages/LandingPage';
 import { JobsPage } from './pages/JobsPage';
 import { JobDetailsPage } from './pages/JobDetailsPage';
@@ -9,6 +8,9 @@ import { CandidateDashboard } from './pages/CandidateDashboard';
 import { RecruiterPortalPage } from './pages/RecruiterPortalPage';
 import { AdminPortalPage } from './pages/AdminPortalPage';
 import { WorkflowMapPage } from './pages/WorkflowMapPage';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { UnauthorizedPage } from './pages/UnauthorizedPage';
 import { Database, ShieldCheck, Heart, Map, Building2, Shield } from 'lucide-react';
 
 const getInitialPage = () => {
@@ -18,6 +20,8 @@ const getInitialPage = () => {
   if (path === '/workflow-map' || path.startsWith('/workflow-map')) return 'workflow-map';
   if (path === '/jobs' || path.startsWith('/jobs')) return 'jobs';
   if (path === '/applications' || path.startsWith('/candidate')) return 'candidate-dash';
+  if (path === '/login' || path.startsWith('/login')) return 'login';
+  if (path === '/register' || path.startsWith('/register')) return 'register';
   return 'landing';
 };
 
@@ -27,9 +31,14 @@ function MainApp() {
   const [selectedJobId, setSelectedJobId] = useState(null);
   const [jobsFilter, setJobsFilter] = useState({});
 
-  // Auth modal state
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authMode, setAuthMode] = useState('login');
+  // Open dedicated auth pages
+  const openAuthModal = (mode = 'login') => {
+    if (mode === 'register') {
+      navigateTo('register', '/register');
+    } else {
+      navigateTo('login', '/login');
+    }
+  };
 
   // Synchronize browser history and URL pathname
   const navigateTo = (page, explicitPath) => {
@@ -41,6 +50,8 @@ function MainApp() {
       else if (page === 'workflow-map') targetPath = '/workflow-map';
       else if (page === 'jobs') targetPath = '/jobs';
       else if (page === 'candidate-dash') targetPath = '/applications';
+      else if (page === 'login') targetPath = '/login';
+      else if (page === 'register') targetPath = '/register';
       else if (page === 'job-details') targetPath = selectedJobId ? `/job/${selectedJobId}` : '/job';
       else targetPath = '/';
     }
@@ -60,11 +71,6 @@ function MainApp() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  const openAuthModal = (mode = 'login') => {
-    setAuthMode(mode);
-    setAuthModalOpen(true);
-  };
-
   const handleSearchFromLanding = (filters) => {
     setJobsFilter(filters);
     navigateTo('jobs', '/jobs');
@@ -77,6 +83,20 @@ function MainApp() {
 
   const handleBackToListings = () => {
     navigateTo('jobs', '/jobs');
+  };
+
+  // Role-based REDIRECT after authentication
+  // Candidate -> Candidate Dashboard (/applications)
+  // Recruiter -> Recruiter Dashboard (/recruiter)
+  // Admin -> Admin Console (/admin)
+  const handleAuthSuccess = (userRole) => {
+    if (userRole === 'admin') {
+      navigateTo('admin', '/admin');
+    } else if (userRole === 'recruiter') {
+      navigateTo('recruiter-dash', '/recruiter');
+    } else {
+      navigateTo('candidate-dash', '/applications');
+    }
   };
 
   // 1. DEDICATED STANDALONE ADMIN PAGE:
@@ -102,6 +122,22 @@ function MainApp() {
       />
 
       <div style={{ flex: 1 }}>
+        {/* Dedicated Standalone Login Page */}
+        {activePage === 'login' && (
+          <LoginPage 
+            onNavigate={navigateTo}
+            onAuthSuccess={handleAuthSuccess}
+          />
+        )}
+
+        {/* Dedicated Standalone Register Page */}
+        {activePage === 'register' && (
+          <RegisterPage 
+            onNavigate={navigateTo}
+            onAuthSuccess={handleAuthSuccess}
+          />
+        )}
+
         {activePage === 'landing' && (
           <LandingPage 
             onSearch={handleSearchFromLanding}
@@ -129,15 +165,33 @@ function MainApp() {
           />
         )}
 
+        {/* Candidate Dashboard with Unauthorized Protection */}
         {activePage === 'candidate-dash' && (
-          <CandidateDashboard onViewJob={handleViewJob} />
+          !user ? (
+            <UnauthorizedPage 
+              requiredRole="candidate"
+              onLoginClick={() => openAuthModal('login')}
+              onHomeClick={() => navigateTo('landing', '/')}
+            />
+          ) : (
+            <CandidateDashboard onViewJob={handleViewJob} />
+          )
         )}
 
+        {/* Recruiter Dashboard with Unauthorized Protection */}
         {activePage === 'recruiter-dash' && (
-          <RecruiterPortalPage 
-            onExit={() => navigateTo('jobs', '/jobs')}
-            onViewJob={handleViewJob}
-          />
+          (!user || role !== 'recruiter') ? (
+            <UnauthorizedPage 
+              requiredRole="recruiter"
+              onLoginClick={() => openAuthModal('login')}
+              onHomeClick={() => navigateTo('landing', '/')}
+            />
+          ) : (
+            <RecruiterPortalPage 
+              onExit={() => navigateTo('jobs', '/jobs')}
+              onViewJob={handleViewJob}
+            />
+          )
         )}
 
         {activePage === 'workflow-map' && (
@@ -148,13 +202,6 @@ function MainApp() {
           />
         )}
       </div>
-
-      {/* Global Auth Modal for Candidates */}
-      <AuthModal 
-        isOpen={authModalOpen} 
-        onClose={() => setAuthModalOpen(false)}
-        initialMode={authMode}
-      />
 
       {/* Candidate Portal Footer */}
       <footer style={{ background: '#0f172a', color: '#94a3b8', padding: '40px 24px 20px', borderTop: '1px solid #1e293b', marginTop: 'auto' }}>

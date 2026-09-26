@@ -110,8 +110,11 @@ export function Navbar({ activePage, setActivePage, openAuthModal, navigateTo })
               </div>
               <button 
                 id="logout-btn"
-                onClick={logout}
-                title="Logout"
+                onClick={() => {
+                  logout();
+                  handleNav('landing', '/');
+                }}
+                title="Logout & Return to Home"
                 className="btn btn-secondary btn-sm"
                 style={{ padding: '6px 10px' }}>
                 <LogOut size={16} />
@@ -121,14 +124,16 @@ export function Navbar({ activePage, setActivePage, openAuthModal, navigateTo })
             <div style={{ display: 'flex', gap: '8px' }}>
               <button 
                 id="login-btn"
-                onClick={() => openAuthModal('login')} 
-                className="btn btn-secondary btn-sm">
+                onClick={() => handleNav('login', '/login')} 
+                className="btn btn-secondary btn-sm"
+                style={{ fontWeight: activePage === 'login' ? 800 : 600 }}>
                 Sign In
               </button>
               <button 
                 id="register-btn"
-                onClick={() => openAuthModal('register')} 
-                className="btn btn-primary btn-sm">
+                onClick={() => handleNav('register', '/register')} 
+                className="btn btn-primary btn-sm"
+                style={{ fontWeight: activePage === 'register' ? 800 : 700 }}>
                 Get Started
               </button>
             </div>

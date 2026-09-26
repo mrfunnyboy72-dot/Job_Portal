@@ -56,6 +56,19 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Serve frontend static build if available (Production All-in-One deployment)
+const frontendDist = path.join(__dirname, '../frontend/dist');
+const fs = require('fs');
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.use((req, res, next) => {
+    if (req.method === 'GET' && !req.path.startsWith('/api') && !req.path.startsWith('/uploads')) {
+      return res.sendFile(path.join(frontendDist, 'index.html'));
+    }
+    next();
+  });
+}
+
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('Unhandled server error:', err);

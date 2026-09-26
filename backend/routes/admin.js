@@ -336,6 +336,27 @@ router.get('/categories', async (req, res) => {
       }
     });
 
+    // Default skills and locations
+    const defaultLocations = ['Bangalore, India', 'Chennai, India', 'Hyderabad, India', 'Mumbai, India', 'Pune, India', 'Delhi NCR', 'Remote (Worldwide)', 'Kochi, India'];
+    const defaultSkills = ['React', 'Node.js', 'Python', 'SQL / TiDB', 'AWS', 'TypeScript', 'Docker', 'GraphQL', 'Tailwind', 'REST APIs', 'DevOps', 'Java', 'Next.js'];
+
+    defaultLocations.forEach(loc => locationsSet.add(loc));
+    defaultSkills.forEach(s => skillsSet.add(s));
+
+    // Custom skills & locations from platform_settings
+    try {
+      const [customRows] = await pool.query("SELECT setting_key, setting_value FROM platform_settings WHERE setting_key IN ('custom_skills', 'custom_locations')");
+      customRows.forEach(r => {
+        if (r.setting_key === 'custom_skills') {
+          const list = JSON.parse(r.setting_value || '[]');
+          list.forEach(s => skillsSet.add(s));
+        } else if (r.setting_key === 'custom_locations') {
+          const list = JSON.parse(r.setting_value || '[]');
+          list.forEach(l => locationsSet.add(l));
+        }
+      });
+    } catch (e) {}
+
     res.json({
       categories,
       locations: Array.from(locationsSet),
@@ -366,6 +387,86 @@ router.delete('/categories/:id', async (req, res) => {
     res.json({ message: 'Category removed successfully.' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete category.' });
+  }
+});
+
+// Skills management
+router.post('/skills', async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Skill name is required.' });
+    const trimmed = name.trim();
+
+    const [rows] = await pool.query("SELECT setting_value FROM platform_settings WHERE setting_key = 'custom_skills'");
+    let skillsList = rows.length > 0 ? JSON.parse(rows[0].setting_value || '[]') : [];
+    if (!skillsList.includes(trimmed)) {
+      skillsList.push(trimmed);
+      await pool.query(`
+        INSERT INTO platform_settings (setting_key, setting_value)
+        VALUES ('custom_skills', ?)
+        ON DUPLICATE KEY UPDATE setting_value = ?
+      `, [JSON.stringify(skillsList), JSON.stringify(skillsList)]);
+    }
+    res.status(201).json({ message: `Skill '${trimmed}' added successfully!`, skills: skillsList });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to add skill.' });
+  }
+});
+
+router.delete('/skills/:name', async (req, res) => {
+  try {
+    const skillName = decodeURIComponent(req.params.name);
+    const [rows] = await pool.query("SELECT setting_value FROM platform_settings WHERE setting_key = 'custom_skills'");
+    let skillsList = rows.length > 0 ? JSON.parse(rows[0].setting_value || '[]') : [];
+    skillsList = skillsList.filter(s => s.toLowerCase() !== skillName.toLowerCase());
+    await pool.query(`
+      INSERT INTO platform_settings (setting_key, setting_value)
+      VALUES ('custom_skills', ?)
+      ON DUPLICATE KEY UPDATE setting_value = ?
+    `, [JSON.stringify(skillsList), JSON.stringify(skillsList)]);
+    res.json({ message: `Skill '${skillName}' removed successfully.`, skills: skillsList });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete skill.' });
+  }
+});
+
+// Locations management
+router.post('/locations', async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Location name is required.' });
+    const trimmed = name.trim();
+
+    const [rows] = await pool.query("SELECT setting_value FROM platform_settings WHERE setting_key = 'custom_locations'");
+    let locList = rows.length > 0 ? JSON.parse(rows[0].setting_value || '[]') : [];
+    if (!locList.includes(trimmed)) {
+      locList.push(trimmed);
+      await pool.query(`
+        INSERT INTO platform_settings (setting_key, setting_value)
+        VALUES ('custom_locations', ?)
+        ON DUPLICATE KEY UPDATE setting_value = ?
+      `, [JSON.stringify(locList), JSON.stringify(locList)]);
+    }
+    res.status(201).json({ message: `Location '${trimmed}' added successfully!`, locations: locList });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to add location.' });
+  }
+});
+
+router.delete('/locations/:name', async (req, res) => {
+  try {
+    const locName = decodeURIComponent(req.params.name);
+    const [rows] = await pool.query("SELECT setting_value FROM platform_settings WHERE setting_key = 'custom_locations'");
+    let locList = rows.length > 0 ? JSON.parse(rows[0].setting_value || '[]') : [];
+    locList = locList.filter(l => l.toLowerCase() !== locName.toLowerCase());
+    await pool.query(`
+      INSERT INTO platform_settings (setting_key, setting_value)
+      VALUES ('custom_locations', ?)
+      ON DUPLICATE KEY UPDATE setting_value = ?
+    `, [JSON.stringify(locList), JSON.stringify(locList)]);
+    res.json({ message: `Location '${locName}' removed successfully.`, locations: locList });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete location.' });
   }
 });
 

@@ -197,13 +197,21 @@ export function AdminPortalPage({ onExit }) {
               <Shield size={28} />
             </div>
             <div style={{ display: 'inline-block', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', padding: '3px 12px', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.06em', marginBottom: '8px' }}>
-              ADMIN ACCESS
+              ADMIN CONSOLE
             </div>
-            <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.02em', margin: 0 }}>
-              Admin Credentials
+            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.02em', margin: 0 }}>
+              LOGIN
             </h1>
-            <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: '6px' }}>
-              Secure access &bull; System Governance & Moderation
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
+              <span style={{ background: '#1e293b', border: '1px solid #334155', color: '#38bdf8', padding: '3px 10px', borderRadius: '6px', fontSize: '0.76rem', fontWeight: 700 }}>
+                • Admin credentials
+              </span>
+              <span style={{ background: '#1e293b', border: '1px solid #334155', color: '#34d399', padding: '3px 10px', borderRadius: '6px', fontSize: '0.76rem', fontWeight: 700 }}>
+                • Secure access
+              </span>
+            </div>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', marginTop: '10px' }}>
+              Platform Governance, Moderation & Moderation Console
             </p>
           </div>
 

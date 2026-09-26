@@ -87,13 +87,13 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const login = async (email, password) => {
+  const login = async (identifier, password) => {
     setLoading(true);
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ identifier, password })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to login');
@@ -104,6 +104,47 @@ export function AuthProvider({ children }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loginWithOtp = async (identifier, otp) => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/login-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, otp })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to login with OTP');
+
+      setUser(data.user);
+      setToken(data.token);
+      return data;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendOtp = async (identifier) => {
+    const res = await fetch('/api/auth/send-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+    return data;
+  };
+
+  const resetPassword = async (identifier, otp, new_password) => {
+    const res = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier, otp, new_password })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to reset password');
+    return data;
   };
 
   const register = async (userData) => {
@@ -149,6 +190,9 @@ export function AuthProvider({ children }) {
       token,
       role: user?.role,
       login,
+      loginWithOtp,
+      sendOtp,
+      resetPassword,
       register,
       logout,
       quickLoginAs,
