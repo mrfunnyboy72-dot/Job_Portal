@@ -14,6 +14,10 @@ const pool = mysql.createPool({
   },
   waitForConnections: true,
   connectionLimit: 10,
+  maxIdle: 5,
+  idleTimeout: 60000,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 10000,
   queueLimit: 0
 });
 
@@ -108,6 +112,7 @@ async function initDatabase() {
         status ENUM('applied', 'viewed', 'shortlisted', 'interview', 'selected', 'rejected') DEFAULT 'applied',
         interview_date DATETIME NULL,
         interview_notes TEXT,
+        meeting_link VARCHAR(500) NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE,
@@ -115,7 +120,27 @@ async function initDatabase() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
 
-    // 6. Categories
+    // Ensure meeting_link column exists if applications table was created prior
+    try {
+      await pool.query(`ALTER TABLE applications ADD COLUMN meeting_link VARCHAR(500) NULL;`);
+    } catch (e) {
+      // Column might already exist, safe to ignore
+    }
+
+    // 6. Saved Jobs table (Bookmark feature)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS saved_jobs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        candidate_id INT NOT NULL,
+        job_id INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_saved (candidate_id, job_id),
+        FOREIGN KEY (candidate_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    // 7. Categories
     await pool.query(`
       CREATE TABLE IF NOT EXISTS categories (
         id INT AUTO_INCREMENT PRIMARY KEY,

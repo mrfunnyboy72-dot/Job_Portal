@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, FileText, Briefcase, CheckCircle, Clock, Calendar, ArrowRight, Upload, MapPin, Phone, Mail, Award } from 'lucide-react';
+import { User, FileText, Briefcase, CheckCircle, Clock, Calendar, ArrowRight, Upload, MapPin, Phone, Mail, Award, Heart, Video } from 'lucide-react';
 
 export function CandidateDashboard({ onViewJob }) {
-  const { user, token } = useAuth();
-  const [activeTab, setActiveTab] = useState('applications'); // 'applications', 'profile', 'resume'
+  const { user, token, toggleSaveJob, refreshSavedJobs } = useAuth();
+  const [activeTab, setActiveTab] = useState('applications'); // 'applications', 'profile', 'resume', 'saved'
   const [applications, setApplications] = useState([]);
+  const [savedJobs, setSavedJobs] = useState([]);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saveLoading, setSaveLoading] = useState(false);
@@ -30,6 +31,13 @@ export function CandidateDashboard({ onViewJob }) {
       });
       const apps = await appRes.json();
       setApplications(Array.isArray(apps) ? apps : []);
+
+      // Fetch saved jobs
+      const savedRes = await fetch('/api/profile/saved-jobs', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const savedData = await savedRes.json();
+      setSavedJobs(Array.isArray(savedData) ? savedData : []);
 
       // Fetch profile
       const profRes = await fetch('/api/profile/candidate', {
@@ -251,6 +259,22 @@ export function CandidateDashboard({ onViewJob }) {
           }}>
           Resume Document
         </button>
+
+        <button 
+          id="tab-candidate-saved-btn"
+          onClick={() => setActiveTab('saved')}
+          style={{
+            padding: '12px 20px',
+            border: 'none',
+            background: 'none',
+            fontWeight: 700,
+            fontSize: '0.95rem',
+            cursor: 'pointer',
+            color: activeTab === 'saved' ? 'var(--primary)' : 'var(--text-muted)',
+            borderBottom: activeTab === 'saved' ? '3px solid var(--primary)' : '3px solid transparent'
+          }}>
+          Saved Jobs ({savedJobs.length})
+        </button>
       </div>
 
       {message && (
@@ -310,11 +334,11 @@ export function CandidateDashboard({ onViewJob }) {
 
                   {/* Interview Information Card if scheduled */}
                   {app.status === 'interview' && (
-                    <div style={{ marginTop: '14px', padding: '14px 18px', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: '10px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6b21a8', fontWeight: 700, fontSize: '0.9rem' }}>
+                    <div style={{ marginTop: '14px', padding: '16px 20px', background: '#f5f3ff', border: '1.5px solid #c4b5fd', borderRadius: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6b21a8', fontWeight: 800, fontSize: '0.95rem' }}>
                         <Calendar size={18} /> Interview Scheduled!
                       </div>
-                      <div style={{ marginTop: '6px', fontSize: '0.88rem', color: '#4c1d95' }}>
+                      <div style={{ marginTop: '8px', fontSize: '0.9rem', color: '#4c1d95' }}>
                         <strong>Date & Time:</strong> {app.interview_date ? new Date(app.interview_date).toLocaleString() : 'Recruiter will confirm time shortly.'}
                       </div>
                       {app.interview_notes && (
@@ -322,6 +346,28 @@ export function CandidateDashboard({ onViewJob }) {
                           <strong>Notes from Recruiter:</strong> {app.interview_notes}
                         </div>
                       )}
+
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '12px' }}>
+                        {app.meeting_link && (
+                          <a 
+                            href={app.meeting_link} 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            className="btn btn-primary btn-sm"
+                            style={{ background: '#059669', color: '#fff', border: 'none', gap: '6px' }}>
+                            <Video size={16} /> Join Google Meet Interview
+                          </a>
+                        )}
+
+                        <a 
+                          href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Interview: ${app.job_title} at ${app.company_name}`)}&details=${encodeURIComponent(`Interview with ${app.company_name}\nMeeting link: ${app.meeting_link || ''}\nNotes: ${app.interview_notes || ''}`)}`} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="btn btn-secondary btn-sm"
+                          style={{ gap: '6px' }}>
+                          <Calendar size={15} /> Add to Google Calendar
+                        </a>
+                      </div>
                     </div>
                   )}
 
@@ -466,6 +512,61 @@ export function CandidateDashboard({ onViewJob }) {
                 Select File
                 <input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} style={{ display: 'none' }} />
               </label>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 4: SAVED JOBS */}
+      {activeTab === 'saved' && (
+        <div>
+          {savedJobs.length === 0 ? (
+            <div className="card" style={{ padding: '60px 20px', textAlign: 'center' }}>
+              <Heart size={44} color="#94a3b8" style={{ margin: '0 auto 12px' }} />
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>No saved jobs yet</h3>
+              <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '6px' }}>
+                Click the heart icon on any job card to bookmark positions you want to apply for later.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {savedJobs.map((job) => (
+                <div key={job.id} className="card card-interactive" style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                  <div>
+                    <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>{job.company_name}</div>
+                    <h3 
+                      onClick={() => onViewJob(job.id)}
+                      style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '4px', cursor: 'pointer' }}>
+                      {job.title}
+                    </h3>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '6px', fontSize: '0.85rem', color: '#64748b' }}>
+                      <span>📍 {job.location}</span>
+                      <span>⏱ {job.job_type}</span>
+                      <span style={{ color: '#059669', fontWeight: 700 }}>
+                        ₹{(job.salary_min / 100000).toFixed(1)}L - ₹{(job.salary_max / 100000).toFixed(1)}L PA
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <button 
+                      onClick={async () => {
+                        await toggleSaveJob(job.id);
+                        fetchCandidateData();
+                      }}
+                      className="btn btn-secondary btn-sm"
+                      style={{ color: '#ef4444' }}
+                      title="Remove Bookmark">
+                      <Heart size={16} fill="#ef4444" color="#ef4444" /> Remove
+                    </button>
+                    <button 
+                      onClick={() => onViewJob(job.id)}
+                      className="btn btn-primary btn-sm">
+                      View & Apply
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

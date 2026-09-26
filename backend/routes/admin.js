@@ -176,4 +176,38 @@ router.get('/applications', async (req, res) => {
   }
 });
 
+// 8. Admin Analytics & Charts Data
+router.get('/analytics', async (req, res) => {
+  try {
+    const [jobsByCategory] = await pool.query(`
+      SELECT category, COUNT(*) as count 
+      FROM jobs 
+      GROUP BY category 
+      ORDER BY count DESC 
+      LIMIT 6
+    `);
+
+    const [appsByStatus] = await pool.query(`
+      SELECT status, COUNT(*) as count 
+      FROM applications 
+      GROUP BY status
+    `);
+
+    const [jobsByStatus] = await pool.query(`
+      SELECT status, COUNT(*) as count 
+      FROM jobs 
+      GROUP BY status
+    `);
+
+    res.json({
+      jobsByCategory,
+      appsByStatus,
+      jobsByStatus
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch admin analytics.' });
+  }
+});
+
 module.exports = router;
+

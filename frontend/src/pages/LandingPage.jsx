@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Briefcase, TrendingUp, Building2, Shield, ArrowRight, Star, Clock, CheckCircle } from 'lucide-react';
+import { Search, MapPin, Briefcase, TrendingUp, Building2, Shield, ArrowRight, Star, Clock, CheckCircle, Heart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export function LandingPage({ onSearch, onViewJob, openAuthModal, setActivePage }) {
-  const { user, role } = useAuth();
+  const { user, role, savedJobIds = [], toggleSaveJob } = useAuth();
   const [categories, setCategories] = useState([]);
   const [featuredJobs, setFeaturedJobs] = useState([]);
   const [keyword, setKeyword] = useState('');
@@ -241,11 +241,23 @@ export function LandingPage({ onSearch, onViewJob, openAuthModal, setActivePage 
                     ₹{(job.salary_min / 100000).toFixed(1)}L - ₹{(job.salary_max / 100000).toFixed(1)}L / yr
                   </div>
                 </div>
-                <button 
-                  onClick={() => onViewJob(job.id)} 
-                  className="btn btn-outline btn-sm">
-                  View Details
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSaveJob(job.id);
+                    }}
+                    className="btn btn-secondary btn-sm"
+                    style={{ padding: '6px 10px', color: savedJobIds.includes(job.id) ? '#ef4444' : 'var(--text-muted)' }}
+                    title={savedJobIds.includes(job.id) ? 'Remove from Saved' : 'Save Job'}>
+                    <Heart size={16} fill={savedJobIds.includes(job.id) ? '#ef4444' : 'none'} color={savedJobIds.includes(job.id) ? '#ef4444' : 'currentColor'} />
+                  </button>
+                  <button 
+                    onClick={() => onViewJob(job.id)} 
+                    className="btn btn-outline btn-sm">
+                    View Details
+                  </button>
+                </div>
               </div>
             </div>
           ))}

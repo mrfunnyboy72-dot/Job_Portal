@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Shield, CheckCircle, XCircle, Users, Briefcase, FileText, AlertTriangle, Search, Check, X } from 'lucide-react';
+import { Shield, CheckCircle, XCircle, Users, Briefcase, FileText, AlertTriangle, Search, Check, X, BarChart2, TrendingUp, Layers } from 'lucide-react';
 
 export function AdminDashboard() {
   const { token } = useAuth();
-  const [activeTab, setActiveTab] = useState('pending-jobs'); // 'pending-jobs', 'all-jobs', 'users', 'applications'
+  const [activeTab, setActiveTab] = useState('pending-jobs'); // 'pending-jobs', 'all-jobs', 'users', 'applications', 'analytics'
   const [stats, setStats] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
   const [pendingJobs, setPendingJobs] = useState([]);
   const [allJobs, setAllJobs] = useState([]);
   const [users, setUsers] = useState([]);
@@ -54,6 +55,13 @@ export function AdminDashboard() {
       });
       const appsData = await appsRes.json();
       setApplications(Array.isArray(appsData) ? appsData : []);
+
+      // 6. Analytics
+      const anaRes = await fetch('/api/admin/analytics', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const anaData = await anaRes.json();
+      if (anaData && !anaData.error) setAnalytics(anaData);
     } catch (err) {
       console.error(err);
     } finally {
@@ -232,6 +240,25 @@ export function AdminDashboard() {
             borderBottom: activeTab === 'applications' ? '3px solid #059669' : '3px solid transparent'
           }}>
           Applications Monitor ({applications.length})
+        </button>
+
+        <button 
+          id="tab-admin-analytics-btn"
+          onClick={() => setActiveTab('analytics')}
+          style={{
+            padding: '12px 20px',
+            border: 'none',
+            background: 'none',
+            fontWeight: 700,
+            fontSize: '0.95rem',
+            cursor: 'pointer',
+            color: activeTab === 'analytics' ? '#059669' : 'var(--text-muted)',
+            borderBottom: activeTab === 'analytics' ? '3px solid #059669' : '3px solid transparent',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+          <BarChart2 size={16} /> Platform Analytics & Charts
         </button>
       </div>
 
@@ -441,6 +468,99 @@ export function AdminDashboard() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* TAB 5: PLATFORM ANALYTICS & CHARTS */}
+      {activeTab === 'analytics' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Top Platform Governance Ratio Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+            <div className="card" style={{ padding: '22px' }}>
+              <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>Job Approval Ratio</div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#10b981', marginTop: '4px' }}>
+                {allJobs.length > 0 
+                  ? Math.round((allJobs.filter(j => j.status === 'approved').length / allJobs.length) * 100) 
+                  : 0}%
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#059669', marginTop: '4px' }}>
+                {allJobs.filter(j => j.status === 'approved').length} of {allJobs.length} jobs approved
+              </div>
+            </div>
+
+            <div className="card" style={{ padding: '22px' }}>
+              <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>Candidate to Recruiter Ratio</div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#6366f1', marginTop: '4px' }}>
+                {(stats?.recruiters && stats?.recruiters > 0) 
+                  ? ((stats?.candidates || 0) / stats.recruiters).toFixed(1) + ' : 1'
+                  : 'N/A'}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px' }}>
+                Talent supply per active employer
+              </div>
+            </div>
+
+            <div className="card" style={{ padding: '22px' }}>
+              <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>Platform Applications Total</div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '4px' }}>
+                {applications.length}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#059669', marginTop: '4px' }}>
+                Total candidate submissions
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            {/* Category Breakdown Chart */}
+            <div className="card" style={{ padding: '26px' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '18px' }}>
+                Job Openings by Industry
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {(analytics?.jobsByCategory || []).map((cat, i) => {
+                  const max = Math.max(...(analytics?.jobsByCategory || []).map(c => c.count), 1);
+                  const pct = Math.round((cat.count / max) * 100);
+                  const colors = ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+                  return (
+                    <div key={cat.category}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '4px' }}>
+                        <span>{cat.category}</span>
+                        <span>{cat.count} listings</span>
+                      </div>
+                      <div style={{ width: '100%', height: '10px', background: 'var(--bg-subtle)', borderRadius: '6px', overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.max(pct, 12)}%`, height: '100%', background: colors[i % colors.length], borderRadius: '6px' }}></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Application Pipeline Status Breakdown */}
+            <div className="card" style={{ padding: '26px' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '18px' }}>
+                Platform Application Status Breakdown
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {(analytics?.appsByStatus || []).map(s => {
+                  const max = Math.max(...(analytics?.appsByStatus || []).map(a => a.count), 1);
+                  const pct = Math.round((s.count / max) * 100);
+                  return (
+                    <div key={s.status}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, textTransform: 'capitalize', color: 'var(--text-main)', marginBottom: '4px' }}>
+                        <span>{s.status}</span>
+                        <span>{s.count} candidates</span>
+                      </div>
+                      <div style={{ width: '100%', height: '10px', background: 'var(--bg-subtle)', borderRadius: '6px', overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.max(pct, 12)}%`, height: '100%', background: 'var(--primary)', borderRadius: '6px' }}></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

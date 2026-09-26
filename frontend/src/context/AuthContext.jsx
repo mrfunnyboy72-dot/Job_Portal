@@ -10,6 +10,21 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem('job_portal_token') || null);
   const [loading, setLoading] = useState(false);
 
+  // Theme state: dark / light
+  const [theme, setTheme] = useState(() => localStorage.getItem('job_portal_theme') || 'light');
+
+  // Saved job IDs for bookmark tracking
+  const [savedJobIds, setSavedJobIds] = useState([]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('job_portal_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+
   useEffect(() => {
     if (token) {
       localStorage.setItem('job_portal_token', token);
@@ -23,6 +38,54 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('job_portal_user');
     }
   }, [user, token]);
+
+  // Fetch saved job IDs when candidate logs in
+  const fetchSavedJobIds = async () => {
+    if (!token || user?.role !== 'candidate') {
+      setSavedJobIds([]);
+      return;
+    }
+    try {
+      const res = await fetch('/api/profile/saved-job-ids', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setSavedJobIds(data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch saved job ids', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchSavedJobIds();
+  }, [user, token]);
+
+  const toggleSaveJob = async (jobId) => {
+    if (!token || user?.role !== 'candidate') {
+      return { success: false, requireLogin: true };
+    }
+
+    try {
+      const res = await fetch(`/api/profile/saved-jobs/${jobId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (data.saved) {
+          setSavedJobIds(prev => [...prev, jobId]);
+        } else {
+          setSavedJobIds(prev => prev.filter(id => id !== jobId));
+        }
+        return { success: true, saved: data.saved, message: data.message };
+      }
+      return { success: false, message: data.error };
+    } catch (e) {
+      return { success: false, message: 'Failed to bookmark job' };
+    }
+  };
 
   const login = async (email, password) => {
     setLoading(true);
@@ -65,11 +128,11 @@ export function AuthProvider({ children }) {
   const logout = () => {
     setUser(null);
     setToken(null);
+    setSavedJobIds([]);
     localStorage.removeItem('job_portal_token');
     localStorage.removeItem('job_portal_user');
   };
 
-  // Quick switch between demo accounts for testing without typing credentials
   const quickLoginAs = async (role) => {
     if (role === 'admin') {
       return await login('admin@jobportal.com', 'admin123');
@@ -81,7 +144,21 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, role: user?.role, login, register, logout, quickLoginAs, loading }}>
+    <AuthContext.Provider value={{
+      user,
+      token,
+      role: user?.role,
+      login,
+      register,
+      logout,
+      quickLoginAs,
+      loading,
+      theme,
+      toggleTheme,
+      savedJobIds,
+      toggleSaveJob,
+      refreshSavedJobs: fetchSavedJobIds
+    }}>
       {children}
     </AuthContext.Provider>
   );

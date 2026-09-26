@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Filter, Briefcase, Building2, SlidersHorizontal, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, MapPin, Filter, Briefcase, Building2, SlidersHorizontal, ChevronLeft, ChevronRight, Heart } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export function JobsPage({ initialFilter = {}, onViewJob }) {
+  const { savedJobIds = [], toggleSaveJob } = useAuth();
   const [jobs, setJobs] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -251,7 +253,17 @@ export function JobsPage({ initialFilter = {}, onViewJob }) {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSaveJob(job.id);
+                      }}
+                      className="btn btn-secondary btn-sm"
+                      style={{ padding: '6px 10px', color: savedJobIds.includes(job.id) ? '#ef4444' : 'var(--text-muted)' }}
+                      title={savedJobIds.includes(job.id) ? 'Remove from Saved' : 'Save Job'}>
+                      <Heart size={16} fill={savedJobIds.includes(job.id) ? '#ef4444' : 'none'} color={savedJobIds.includes(job.id) ? '#ef4444' : 'currentColor'} />
+                    </button>
                     <button 
                       id={`view-job-btn-${job.id}`}
                       onClick={() => onViewJob(job.id)} 

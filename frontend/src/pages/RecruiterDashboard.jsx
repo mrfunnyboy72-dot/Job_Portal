@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Building2, PlusCircle, Users, Briefcase, CheckCircle2, Clock, XCircle, Calendar, ExternalLink, ArrowRight, Eye } from 'lucide-react';
+import { Building2, PlusCircle, Users, Briefcase, CheckCircle2, Clock, XCircle, Calendar, ExternalLink, ArrowRight, Eye, Video, BarChart2, TrendingUp, Sparkles } from 'lucide-react';
 
 export function RecruiterDashboard({ onViewJob }) {
   const { user, token } = useAuth();
-  const [activeTab, setActiveTab] = useState('jobs'); // 'jobs', 'post-job', 'applicants', 'company'
+  const [activeTab, setActiveTab] = useState('jobs'); // 'jobs', 'post-job', 'applicants', 'analytics', 'company'
   const [jobs, setJobs] = useState([]);
   const [applicants, setApplicants] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
   const [companyProfile, setCompanyProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -15,6 +16,7 @@ export function RecruiterDashboard({ onViewJob }) {
   const [interviewModalApp, setInterviewModalApp] = useState(null);
   const [interviewDate, setInterviewDate] = useState('');
   const [interviewNotes, setInterviewNotes] = useState('');
+  const [meetingLink, setMeetingLink] = useState('');
 
   // Post Job form state
   const [jobForm, setJobForm] = useState({
@@ -72,6 +74,15 @@ export function RecruiterDashboard({ onViewJob }) {
           industry: profData.industry || '',
           location: profData.location || ''
         });
+      }
+
+      // 4. Analytics & Funnel
+      const anaRes = await fetch('/api/jobs/recruiter/analytics', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const anaData = await anaRes.json();
+      if (anaData && !anaData.error) {
+        setAnalytics(anaData);
       }
     } catch (err) {
       console.error(err);
@@ -270,6 +281,25 @@ export function RecruiterDashboard({ onViewJob }) {
         </button>
 
         <button 
+          id="tab-recruiter-analytics-btn"
+          onClick={() => setActiveTab('analytics')}
+          style={{
+            padding: '12px 20px',
+            border: 'none',
+            background: 'none',
+            fontWeight: 700,
+            fontSize: '0.95rem',
+            cursor: 'pointer',
+            color: activeTab === 'analytics' ? 'var(--primary)' : 'var(--text-muted)',
+            borderBottom: activeTab === 'analytics' ? '3px solid var(--primary)' : '3px solid transparent',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+          <BarChart2 size={16} /> Analytics & Funnel
+        </button>
+
+        <button 
           id="tab-recruiter-post-btn"
           onClick={() => setActiveTab('post-job')}
           style={{
@@ -440,6 +470,7 @@ export function RecruiterDashboard({ onViewJob }) {
                           setInterviewModalApp(app);
                           setInterviewDate(app.interview_date ? app.interview_date.slice(0, 16) : '');
                           setInterviewNotes(app.interview_notes || '');
+                          setMeetingLink(app.meeting_link || `https://meet.google.com/${Math.random().toString(36).substring(2, 5)}-${Math.random().toString(36).substring(2, 6)}-${Math.random().toString(36).substring(2, 5)}`);
                         }}
                         className="btn btn-sm"
                         style={{ background: '#ede9fe', color: '#5b21b6', border: 'none' }}>
@@ -705,6 +736,127 @@ export function RecruiterDashboard({ onViewJob }) {
         </div>
       )}
 
+      {/* TAB 5: ANALYTICS & PIPELINE FUNNEL */}
+      {activeTab === 'analytics' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Top Conversion Metrics Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+            <div className="card" style={{ padding: '22px' }}>
+              <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>Total Applicants</div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '4px' }}>
+                {applicants.length}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#059669', marginTop: '4px', fontWeight: 600 }}>
+                Across {jobs.length} created openings
+              </div>
+            </div>
+
+            <div className="card" style={{ padding: '22px' }}>
+              <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>Interview Conversion Rate</div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#6366f1', marginTop: '4px' }}>
+                {applicants.length > 0 
+                  ? Math.round((applicants.filter(a => a.status === 'interview' || a.status === 'selected').length / applicants.length) * 100) 
+                  : 0}%
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px' }}>
+                Applications moved to live interview
+              </div>
+            </div>
+
+            <div className="card" style={{ padding: '22px' }}>
+              <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>Offer / Hire Conversion Rate</div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#10b981', marginTop: '4px' }}>
+                {applicants.length > 0 
+                  ? Math.round((applicants.filter(a => a.status === 'selected').length / applicants.length) * 100) 
+                  : 0}%
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#059669', marginTop: '4px', fontWeight: 600 }}>
+                Successful hiring candidates
+              </div>
+            </div>
+          </div>
+
+          {/* Visual Recruitment Funnel */}
+          <div className="card" style={{ padding: '28px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                  Hiring Pipeline Funnel
+                </h3>
+                <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '2px' }}>
+                  Visual progression of candidates through your interview stages.
+                </p>
+              </div>
+              <span className="badge badge-approved" style={{ fontSize: '0.75rem' }}>Live Pipeline</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {[
+                { stage: '1. Applications Received', key: 'applied', color: '#3b82f6', count: applicants.length },
+                { stage: '2. Profiles Shortlisted', key: 'shortlisted', color: '#8b5cf6', count: applicants.filter(a => ['shortlisted', 'interview', 'selected'].includes(a.status)).length },
+                { stage: '3. Interviews Scheduled', key: 'interview', color: '#f59e0b', count: applicants.filter(a => ['interview', 'selected'].includes(a.status)).length },
+                { stage: '4. Selected & Hired', key: 'selected', color: '#10b981', count: applicants.filter(a => a.status === 'selected').length },
+                { stage: '5. Rejected / Withdrawn', key: 'rejected', color: '#ef4444', count: applicants.filter(a => a.status === 'rejected').length }
+              ].map((funnel) => {
+                const max = Math.max(applicants.length, 1);
+                const pct = Math.round((funnel.count / max) * 100);
+                return (
+                  <div key={funnel.stage}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '6px' }}>
+                      <span>{funnel.stage}</span>
+                      <span>{funnel.count} ({pct}%)</span>
+                    </div>
+                    <div style={{ width: '100%', height: '14px', background: 'var(--bg-subtle)', borderRadius: '9999px', overflow: 'hidden' }}>
+                      <div style={{ width: `${Math.max(pct, funnel.count > 0 ? 8 : 0)}%`, height: '100%', background: funnel.color, borderRadius: '9999px', transition: 'width 0.5s ease' }}></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Job Performance Conversion */}
+          <div className="card" style={{ padding: '28px' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '16px' }}>
+              Job Openings Performance
+            </h3>
+            {jobs.length === 0 ? (
+              <p style={{ color: '#64748b', fontSize: '0.9rem' }}>No job listings created yet.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {jobs.map(j => {
+                  const apps = j.applicants_count || 0;
+                  const views = Math.max(j.views_count || 0, apps);
+                  const conv = views > 0 ? Math.round((apps / views) * 100) : 0;
+                  return (
+                    <div key={j.id} style={{ padding: '14px 18px', background: 'var(--bg-subtle)', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)' }}>{j.title}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{j.category} &bull; {j.location}</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Views</div>
+                          <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-main)' }}>{views}</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Applications</div>
+                          <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--primary)' }}>{apps}</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Conversion</div>
+                          <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#059669' }}>{conv}%</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Interview Scheduling Modal */}
       {interviewModalApp && (
         <div className="modal-overlay" onClick={() => setInterviewModalApp(null)}>
@@ -729,11 +881,34 @@ export function RecruiterDashboard({ onViewJob }) {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Interview Notes / Video Link</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label className="form-label">Google Meet Video Link</label>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    const r = () => Math.random().toString(36).substring(2, 5);
+                    setMeetingLink(`https://meet.google.com/${r()}-${Math.random().toString(36).substring(2, 6)}-${r()}`);
+                  }}
+                  className="btn btn-outline btn-sm" style={{ padding: '2px 8px', fontSize: '0.75rem' }}>
+                  <Video size={13} /> Auto Generate Link
+                </button>
+              </div>
+              <input 
+                id="interview-meeting-link-input"
+                type="url" 
+                className="form-control"
+                placeholder="https://meet.google.com/..."
+                value={meetingLink}
+                onChange={(e) => setMeetingLink(e.target.value)}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Interview Notes / Instructions</label>
               <textarea 
                 id="interview-notes-input"
                 className="form-control"
-                placeholder="Add Google Meet link, interview format, or agenda..."
+                placeholder="Add round details (e.g. Technical Round 1 - Live Coding), agenda, or instructions..."
                 rows={3}
                 value={interviewNotes}
                 onChange={(e) => setInterviewNotes(e.target.value)}
@@ -750,9 +925,9 @@ export function RecruiterDashboard({ onViewJob }) {
               <button 
                 id="confirm-schedule-interview-btn"
                 type="button" 
-                onClick={() => handleUpdateStatus(interviewModalApp.id, 'interview', { interview_date: interviewDate, interview_notes: interviewNotes })}
+                onClick={() => handleUpdateStatus(interviewModalApp.id, 'interview', { interview_date: interviewDate, interview_notes: interviewNotes, meeting_link: meetingLink })}
                 className="btn btn-primary" style={{ flex: 1.5 }}>
-                Confirm Schedule
+                Confirm Schedule & Send Invite
               </button>
             </div>
           </div>

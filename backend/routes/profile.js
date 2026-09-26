@@ -172,4 +172,62 @@ router.put('/recruiter', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/profile/saved-jobs - Fetch candidate's bookmarked jobs
+router.get('/saved-jobs', authenticateToken, async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        j.*,
+        r.company_name,
+        r.company_logo,
+        sj.created_at as saved_at
+      FROM saved_jobs sj
+      JOIN jobs j ON sj.job_id = j.id
+      LEFT JOIN recruiter_profiles r ON r.user_id = j.recruiter_id
+      WHERE sj.candidate_id = ?
+      ORDER BY sj.created_at DESC
+    `;
+    const [jobs] = await pool.query(query, [req.user.id]);
+    res.json(jobs);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch saved jobs.' });
+  }
+});
+
+// GET /api/profile/saved-job-ids - Quick array of saved job IDs
+router.get('/saved-job-ids', authenticateToken, async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT job_id FROM saved_jobs WHERE candidate_id = ?', [req.user.id]);
+    const ids = rows.map(r => r.job_id);
+    res.json(ids);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch saved job IDs.' });
+  }
+});
+
+// POST /api/profile/saved-jobs/:jobId - Toggle save/unsave job
+router.post('/saved-jobs/:jobId', authenticateToken, async (req, res) => {
+  try {
+    const jobId = parseInt(req.params.jobId, 10);
+    const candidateId = req.user.id;
+
+    // Check if already saved
+    const [existing] = await pool.query(
+      'SELECT id FROM saved_jobs WHERE candidate_id = ? AND job_id = ?',
+      [candidateId, jobId]
+    );
+
+    if (existing.length > 0) {
+      await pool.query('DELETE FROM saved_jobs WHERE candidate_id = ? AND job_id = ?', [candidateId, jobId]);
+      return res.json({ saved: false, message: 'Job removed from saved list.' });
+    } else {
+      await pool.query('INSERT INTO saved_jobs (candidate_id, job_id) VALUES (?, ?)', [candidateId, jobId]);
+      return res.json({ saved: true, message: 'Job saved to your bookmarks!' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to toggle saved job.' });
+  }
+});
+
 module.exports = router;
+

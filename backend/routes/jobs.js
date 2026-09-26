@@ -329,4 +329,115 @@ router.delete('/:id', authenticateToken, requireRole('recruiter', 'admin'), asyn
   }
 });
 
+// 9. POST /api/jobs/:id/match-score - AI ATS Resume & Skill Matching
+router.post('/:id/match-score', async (req, res) => {
+  try {
+    const jobId = req.params.id;
+    const { candidateSkills = [], candidateExperience = '', candidateHeadline = '' } = req.body;
+
+    const [jobs] = await pool.query('SELECT * FROM jobs WHERE id = ?', [jobId]);
+    if (jobs.length === 0) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    const job = jobs[0];
+    const jobSkills = Array.isArray(job.skills) 
+      ? job.skills 
+      : (typeof job.skills === 'string' ? JSON.parse(job.skills || '[]') : []);
+
+    const normCandidateSkills = (candidateSkills || []).map(s => String(s).toLowerCase().trim());
+    const normJobSkills = jobSkills.map(s => String(s).toLowerCase().trim());
+
+    // Compute intersection
+    const matched = [];
+    const missing = [];
+
+    normJobSkills.forEach(js => {
+      const isMatch = normCandidateSkills.some(cs => cs.includes(js) || js.includes(cs));
+      if (isMatch) matched.push(js);
+      else missing.push(js);
+    });
+
+    // Score calculation
+    let score = 40; // baseline for interested applicants
+    if (normJobSkills.length > 0) {
+      const ratio = matched.length / normJobSkills.length;
+      score = Math.round(35 + (ratio * 55));
+    } else {
+      score = 75;
+    }
+
+    if (candidateHeadline && candidateHeadline.toLowerCase().includes(job.title.toLowerCase().slice(0, 5))) {
+      score = Math.min(score + 10, 98);
+    }
+
+    let fitLevel = 'Developing Match';
+    if (score >= 80) fitLevel = 'Exceptional Match';
+    else if (score >= 60) fitLevel = 'Strong Match';
+
+    res.json({
+      matchScore: score,
+      fitLevel,
+      matchedSkills: matched,
+      missingSkills: missing,
+      totalRequiredSkills: normJobSkills.length,
+      insights: score >= 80 
+        ? 'Your profile closely matches this opening! You are in the top tier of candidates.'
+        : `You have ${matched.length} out of ${normJobSkills.length} core competencies. Consider highlighting any related projects.`
+    });
+  } catch (err) {
+    console.error('Match score error:', err);
+    res.status(500).json({ error: 'Failed to calculate match score.' });
+  }
+});
+
+// 10. GET /api/jobs/recruiter/analytics - Visual pipeline analytics
+router.get('/recruiter/analytics', authenticateToken, requireRole('recruiter'), async (req, res) => {
+  try {
+    const recruiterId = req.user.id;
+
+    const [jobCounts] = await pool.query(`
+      SELECT 
+        status, 
+        COUNT(*) as count 
+      FROM jobs 
+      WHERE recruiter_id = ? 
+      GROUP BY status
+    `, [recruiterId]);
+
+    const [appPipeline] = await pool.query(`
+      SELECT 
+        a.status, 
+        COUNT(*) as count 
+      FROM applications a
+      JOIN jobs j ON a.job_id = j.id
+      WHERE j.recruiter_id = ?
+      GROUP BY a.status
+    `, [recruiterId]);
+
+    const [topJobs] = await pool.query(`
+      SELECT 
+        j.id, 
+        j.title, 
+        j.views_count,
+        COUNT(a.id) as application_count
+      FROM jobs j
+      LEFT JOIN applications a ON j.id = a.job_id
+      WHERE j.recruiter_id = ?
+      GROUP BY j.id, j.title, j.views_count
+      ORDER BY application_count DESC
+      LIMIT 5
+    `, [recruiterId]);
+
+    res.json({
+      jobCounts,
+      appPipeline,
+      topJobs
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch recruiter analytics.' });
+  }
+});
+
 module.exports = router;
+

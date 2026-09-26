@@ -72,6 +72,7 @@ router.get('/candidate', authenticateToken, requireRole('candidate'), async (req
         a.resume_url,
         a.interview_date,
         a.interview_notes,
+        a.meeting_link,
         a.created_at,
         a.updated_at,
         j.id as job_id,
@@ -116,6 +117,7 @@ router.get('/recruiter/job/:jobId', authenticateToken, requireRole('recruiter'),
         a.resume_url,
         a.interview_date,
         a.interview_notes,
+        a.meeting_link,
         a.created_at,
         u.id as candidate_user_id,
         u.name as candidate_name,
@@ -151,6 +153,7 @@ router.get('/recruiter/all', authenticateToken, requireRole('recruiter'), async 
         a.created_at,
         a.interview_date,
         a.interview_notes,
+        a.meeting_link,
         a.resume_url,
         j.id as job_id,
         j.title as job_title,
@@ -175,7 +178,7 @@ router.get('/recruiter/all', authenticateToken, requireRole('recruiter'), async 
 router.patch('/:id/status', authenticateToken, requireRole('recruiter'), async (req, res) => {
   try {
     const applicationId = req.params.id;
-    const { status, interview_date, interview_notes } = req.body;
+    const { status, interview_date, interview_notes, meeting_link } = req.body;
 
     const validStatuses = ['applied', 'viewed', 'shortlisted', 'interview', 'selected', 'rejected'];
     if (!validStatuses.includes(status)) {
@@ -198,9 +201,10 @@ router.patch('/:id/status', authenticateToken, requireRole('recruiter'), async (
       UPDATE applications 
       SET status = ?, 
           interview_date = COALESCE(?, interview_date),
-          interview_notes = COALESCE(?, interview_notes)
+          interview_notes = COALESCE(?, interview_notes),
+          meeting_link = COALESCE(?, meeting_link)
       WHERE id = ?
-    `, [status, interview_date || null, interview_notes || null, applicationId]);
+    `, [status, interview_date || null, interview_notes || null, meeting_link || null, applicationId]);
 
     res.json({ message: `Application status updated to ${status}.`, status });
   } catch (err) {
