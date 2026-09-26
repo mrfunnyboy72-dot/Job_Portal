@@ -95,8 +95,8 @@ export function AdminPortalPage({ onExit }) {
                 onClick={onExit}
                 className="btn btn-secondary btn-sm"
                 style={{ background: '#1e293b', border: '1px solid #334155', color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem' }}
-                title="Return to Public Candidate Portal">
-                <ArrowLeft size={15} /> Exit to Job Board
+                title="View Public Candidate Site">
+                <ExternalLink size={15} /> View Candidate Site
               </button>
 
               <button 
@@ -169,7 +169,7 @@ export function AdminPortalPage({ onExit }) {
           }}
           onMouseEnter={(e) => e.target.style.color = '#fff'}
           onMouseLeave={(e) => e.target.style.color = '#94a3b8'}>
-          <ArrowLeft size={16} /> Return to Candidate Job Board
+          <ArrowLeft size={16} /> View Candidate Site
         </button>
 
         {/* Security Login Card */}
