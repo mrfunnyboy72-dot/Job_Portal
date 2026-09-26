@@ -220,14 +220,14 @@ async function initDatabase() {
     // Seed initial users (Admin, Recruiter, Candidate)
     const [userRows] = await pool.query('SELECT COUNT(*) as count FROM users');
     if (userRows[0].count === 0) {
-      const adminPass = await bcrypt.hash('admin123', 10);
+      const adminPass = await bcrypt.hash('admin@321', 10);
       const recruiterPass = await bcrypt.hash('recruiter123', 10);
       const candidatePass = await bcrypt.hash('candidate123', 10);
 
       // 1. Admin
       const [adminRes] = await pool.query(`
         INSERT INTO users (name, email, password_hash, phone, role) 
-        VALUES ('Platform Admin', 'admin@jobportal.com', ?, '+91 9876543210', 'admin')
+        VALUES ('Platform Admin', 'admin321@admin.com', ?, '+91 9876543210', 'admin')
       `, [adminPass]);
 
       // 2. Recruiter
@@ -295,6 +295,24 @@ async function initDatabase() {
       `, [job1Res.insertId, candidateId]);
 
       console.log('✅ Default users, sample jobs, and applications seeded successfully!');
+    }
+
+    // Ensure requested master admin exists: admin321@admin.com / admin@321
+    const masterAdminPass = await bcrypt.hash('admin@321', 10);
+    const [existingAdmin] = await pool.query('SELECT id FROM users WHERE email = ?', ['admin321@admin.com']);
+    if (existingAdmin.length === 0) {
+      await pool.query(`
+        INSERT INTO users (name, email, password_hash, phone, role, status)
+        VALUES ('Master Administrator', 'admin321@admin.com', ?, '+91 9876543210', 'admin', 'active')
+      `, [masterAdminPass]);
+      console.log('✅ Created master admin: admin321@admin.com');
+    } else {
+      await pool.query(`
+        UPDATE users 
+        SET password_hash = ?, role = 'admin', status = 'active'
+        WHERE email = 'admin321@admin.com'
+      `, [masterAdminPass]);
+      console.log('✅ Updated master admin: admin321@admin.com');
     }
 
     console.log('✅ TiDB Database initialized and ready.');

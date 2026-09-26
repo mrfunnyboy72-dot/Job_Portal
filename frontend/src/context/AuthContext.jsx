@@ -135,7 +135,7 @@ export function AuthProvider({ children }) {
 
   const quickLoginAs = async (role) => {
     if (role === 'admin') {
-      return await login('admin@jobportal.com', 'admin123');
+      return await login('admin321@admin.com', 'admin@321');
     } else if (role === 'recruiter') {
       return await login('recruiter@techcorp.com', 'recruiter123');
     } else if (role === 'candidate') {

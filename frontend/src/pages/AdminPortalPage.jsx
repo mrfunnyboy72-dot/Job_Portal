@@ -5,34 +5,45 @@ import { Shield, Lock, Mail, ArrowLeft, KeyRound, Sparkles, CheckCircle, Databas
 
 export function AdminPortalPage({ onExit }) {
   const { user, role, token, login, quickLoginAs, logout } = useAuth();
-  const [email, setEmail] = useState('admin@jobportal.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleAdminLogin = async (e) => {
     e?.preventDefault();
     setError('');
+
+    if (email.trim().toLowerCase() !== 'admin321@admin.com') {
+      setError('Access Denied: Only master administrator (admin321@admin.com) can access this portal.');
+      return;
+    }
+
     setLoading(true);
     try {
-      const data = await login(email, password);
-      if (data.user.role !== 'admin') {
-        throw new Error('Access denied. This account does not have Administrator privileges.');
+      const data = await login(email.trim(), password);
+      if (data.user.role !== 'admin' || data.user.email !== 'admin321@admin.com') {
+        throw new Error('Access denied. Invalid administrator privileges.');
       }
     } catch (err) {
-      setError(err.message || 'Invalid administrator credentials');
+      setError(err.message || 'Invalid administrator credentials. Please check your password.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAutofillAdmin = () => {
+    setEmail('admin321@admin.com');
+    setPassword('admin@321');
   };
 
   const handleQuickAdminLogin = async () => {
     setError('');
     setLoading(true);
     try {
-      await quickLoginAs('admin');
+      await login('admin321@admin.com', 'admin@321');
     } catch (err) {
-      setError(err.message || 'Failed to authenticate as demo admin');
+      setError(err.message || 'Failed to authenticate master admin');
     } finally {
       setLoading(false);
     }
@@ -222,7 +233,7 @@ export function AdminPortalPage({ onExit }) {
                   type="email" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@jobportal.com"
+                  placeholder="admin321@admin.com"
                   required
                   style={{ 
                     width: '100%', 
@@ -249,7 +260,7 @@ export function AdminPortalPage({ onExit }) {
                   type="password" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="admin@321"
                   required
                   style={{ 
                     width: '100%', 
@@ -289,7 +300,7 @@ export function AdminPortalPage({ onExit }) {
           {/* 1-Click Demo Login for Quick Verification */}
           <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #1e293b', textAlign: 'center' }}>
             <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, marginBottom: '10px' }}>
-              OR INSTANT DEMO ACCESS:
+              MASTER ADMIN AUTHORIZATION:
             </div>
             <button 
               type="button" 
@@ -310,10 +321,11 @@ export function AdminPortalPage({ onExit }) {
                 justifyContent: 'center',
                 gap: '8px'
               }}>
-              <KeyRound size={16} /> ⚡ 1-Click Demo Admin Login
+              <KeyRound size={16} /> ⚡ 1-Click Master Admin Login
             </button>
-            <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '8px' }}>
-              Default: admin@jobportal.com / admin123
+            <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '10px' }}>
+              Required Email: <strong style={{ color: '#38bdf8' }}>admin321@admin.com</strong><br />
+              Required Password: <strong style={{ color: '#34d399' }}>admin@321</strong>
             </div>
           </div>
         </div>
