@@ -197,7 +197,7 @@ export function AdminPortalPage({ onExit }) {
               <Shield size={28} />
             </div>
             <div style={{ display: 'inline-block', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', padding: '3px 12px', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.06em', marginBottom: '8px' }}>
-              A01 • LOGIN
+              ADMIN ACCESS
             </div>
             <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.02em', margin: 0 }}>
               Admin Credentials

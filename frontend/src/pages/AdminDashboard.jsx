@@ -9,9 +9,8 @@ import {
 
 export function AdminDashboard() {
   const { token } = useAuth();
-  // Exact tabs as specified in PDF Page 7
-  // A02: DASHBOARD, A03: USERS, A04: JOBS, A05: APPLICATIONS, A06: CATEGORIES, A07: REPORTS, A08: SETTINGS
-  const [activeTab, setActiveTab] = useState('A02');
+  // Clean tab views: Dashboard, Users, Jobs, Applications, Categories, Reports, Settings
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   const [stats, setStats] = useState(null);
   const [analytics, setAnalytics] = useState(null);
@@ -337,7 +336,7 @@ export function AdminDashboard() {
         </div>
       )}
 
-      {/* Strict 7-Section Navigation Menu (Exact PDF Page 7 Specification: A02 to A08) */}
+      {/* Admin Navigation Menu (Dashboard, Users, Jobs, Applications, Categories, Reports, Settings) */}
       <div style={{ 
         display: 'flex', 
         flexWrap: 'wrap', 
@@ -349,13 +348,13 @@ export function AdminDashboard() {
         marginBottom: '26px' 
       }}>
         {[
-          { id: 'A02', label: 'A02 • DASHBOARD', icon: ShieldCheck, badge: null },
-          { id: 'A03', label: 'A03 • USERS', icon: Users, badge: users.length },
-          { id: 'A04', label: 'A04 • JOBS', icon: Briefcase, badge: pendingJobs.length > 0 ? `${pendingJobs.length} Pending` : `${allJobs.length}` },
-          { id: 'A05', label: 'A05 • APPLICATIONS', icon: FileText, badge: applications.length },
-          { id: 'A06', label: 'A06 • CATEGORIES', icon: Tag, badge: categoriesData.categories?.length || 0 },
-          { id: 'A07', label: 'A07 • REPORTS', icon: BarChart2, badge: null },
-          { id: 'A08', label: 'A08 • SETTINGS', icon: Settings, badge: null },
+          { id: 'dashboard', label: 'Dashboard', icon: ShieldCheck, badge: null },
+          { id: 'users', label: 'Users', icon: Users, badge: users.length },
+          { id: 'jobs', label: 'Jobs', icon: Briefcase, badge: pendingJobs.length > 0 ? `${pendingJobs.length} Pending` : `${allJobs.length}` },
+          { id: 'applications', label: 'Applications', icon: FileText, badge: applications.length },
+          { id: 'categories', label: 'Categories', icon: Tag, badge: categoriesData.categories?.length || 0 },
+          { id: 'reports', label: 'Reports', icon: BarChart2, badge: null },
+          { id: 'settings', label: 'Settings', icon: Settings, badge: null },
         ].map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -397,16 +396,16 @@ export function AdminDashboard() {
       </div>
 
       {/* ========================================================
-          A02 • DASHBOARD (Overview Metrics: Users, Recruiters, Jobs)
+          DASHBOARD (Overview Metrics: Users, Recruiters, Jobs)
           ======================================================== */}
-      {activeTab === 'A02' && (
+      {activeTab === 'dashboard' && (
         <div>
           {/* Top Banner */}
           <div className="card" style={{ padding: '28px', marginBottom: '24px', background: 'linear-gradient(135deg, #064e3b 0%, #022c22 100%)', color: '#fff' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
               <div>
                 <span style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#6ee7b7', padding: '3px 10px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 800 }}>
-                  A02 • MASTER DASHBOARD
+                  EXECUTIVE DASHBOARD
                 </span>
                 <h1 style={{ fontSize: '1.9rem', fontWeight: 800, marginTop: '8px', margin: 0, fontFamily: 'var(--font-display)' }}>
                   Platform Executive Overview
@@ -418,7 +417,7 @@ export function AdminDashboard() {
 
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button 
-                  onClick={() => setActiveTab('A04')}
+                  onClick={() => setActiveTab('jobs')}
                   className="btn btn-primary"
                   style={{ backgroundColor: '#10b981', color: '#022c22', fontWeight: 800, border: 'none' }}>
                   Review Pending Jobs ({pendingJobs.length})
@@ -483,8 +482,8 @@ export function AdminDashboard() {
                       </button>
                     </div>
                   ))}
-                  <button onClick={() => setActiveTab('A04')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', textAlign: 'left', marginTop: '6px' }}>
-                    View all in A04 • Jobs &rarr;
+                  <button onClick={() => setActiveTab('jobs')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', textAlign: 'left', marginTop: '6px' }}>
+                    View all Jobs & Approvals &rarr;
                   </button>
                 </div>
               )}
@@ -515,13 +514,13 @@ export function AdminDashboard() {
       )}
 
       {/* ========================================================
-          A03 • USERS (Candidate, Recruiter, Block / Unblock)
+          USERS (Candidate, Recruiter, Block / Unblock)
           ======================================================== */}
-      {activeTab === 'A03' && (
+      {activeTab === 'users' && (
         <div className="card" style={{ padding: '28px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '22px' }}>
             <div>
-              <span style={{ color: '#059669', fontSize: '0.78rem', fontWeight: 800 }}>A03 • USER GOVERNANCE</span>
+              <span style={{ color: '#059669', fontSize: '0.78rem', fontWeight: 800 }}>USER MANAGEMENT</span>
               <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', margin: '4px 0 0' }}>
                 Candidates & Recruiters Directory
               </h2>
@@ -648,9 +647,9 @@ export function AdminDashboard() {
       )}
 
       {/* ========================================================
-          A04 • JOBS (Pending Jobs, Approve, Reject, Live Jobs, Companies)
+          JOBS (Pending Jobs, Approve, Reject, Live Jobs, Companies)
           ======================================================== */}
-      {activeTab === 'A04' && (
+      {activeTab === 'jobs' && (
         <div>
           {/* Sub Navigation */}
           <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
@@ -822,12 +821,12 @@ export function AdminDashboard() {
       )}
 
       {/* ========================================================
-          A05 • APPLICATIONS (Monitor, Status, Audit Reports)
+          APPLICATIONS (Monitor, Status, Audit Reports)
           ======================================================== */}
-      {activeTab === 'A05' && (
+      {activeTab === 'applications' && (
         <div className="card" style={{ padding: '28px' }}>
           <div style={{ marginBottom: '22px' }}>
-            <span style={{ color: '#059669', fontSize: '0.78rem', fontWeight: 800 }}>A05 • APPLICATION AUDIT</span>
+            <span style={{ color: '#059669', fontSize: '0.78rem', fontWeight: 800 }}>APPLICATION AUDIT</span>
             <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', margin: '4px 0 0' }}>
               Candidate Applications Monitor
             </h2>
@@ -897,15 +896,15 @@ export function AdminDashboard() {
       )}
 
       {/* ========================================================
-          A06 • CATEGORIES (Job Categories, Skills, Locations)
+          CATEGORIES (Job Categories, Skills, Locations)
           ======================================================== */}
-      {activeTab === 'A06' && (
+      {activeTab === 'categories' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* Categories Manager */}
           <div className="card" style={{ padding: '28px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '20px' }}>
               <div>
-                <span style={{ color: '#059669', fontSize: '0.78rem', fontWeight: 800 }}>A06 • MASTER CATALOG</span>
+                <span style={{ color: '#059669', fontSize: '0.78rem', fontWeight: 800 }}>MASTER CATALOG</span>
                 <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', margin: '4px 0 0' }}>
                   Job Categories Catalog
                 </h2>
@@ -987,13 +986,13 @@ export function AdminDashboard() {
       )}
 
       {/* ========================================================
-          A07 • REPORTS (Visual Intelligence: Users, Jobs, Applications)
+          REPORTS (Visual Intelligence: Users, Jobs, Applications)
           ======================================================== */}
-      {activeTab === 'A07' && (
+      {activeTab === 'reports' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
             <div>
-              <span style={{ color: '#059669', fontSize: '0.78rem', fontWeight: 800 }}>A07 • BUSINESS INTELLIGENCE</span>
+              <span style={{ color: '#059669', fontSize: '0.78rem', fontWeight: 800 }}>BUSINESS INTELLIGENCE</span>
               <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', margin: '4px 0 0' }}>
                 Platform Analytics & Reports
               </h2>
@@ -1060,12 +1059,12 @@ export function AdminDashboard() {
       )}
 
       {/* ========================================================
-          A08 • SETTINGS (Platform Rules, Configuration)
+          SETTINGS (Platform Rules, Configuration)
           ======================================================== */}
-      {activeTab === 'A08' && (
+      {activeTab === 'settings' && (
         <div className="card" style={{ padding: '28px', maxWidth: '800px' }}>
           <div style={{ marginBottom: '24px' }}>
-            <span style={{ color: '#059669', fontSize: '0.78rem', fontWeight: 800 }}>A08 • GOVERNANCE RULES</span>
+            <span style={{ color: '#059669', fontSize: '0.78rem', fontWeight: 800 }}>GOVERNANCE RULES</span>
             <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', margin: '4px 0 0' }}>
               Platform Rules & Configuration
             </h2>
