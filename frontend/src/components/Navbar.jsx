@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Briefcase, User, Shield, Building2, LogOut, Sun, Moon, Bookmark, Sparkles } from 'lucide-react';
+import { Briefcase, User, Shield, Building2, LogOut, Sun, Moon, Bookmark, Sparkles, Map } from 'lucide-react';
 
 export function Navbar({ activePage, setActivePage, openAuthModal }) {
   const { user, role, logout, quickLoginAs, theme, toggleTheme, savedJobIds } = useAuth();
@@ -57,7 +57,7 @@ export function Navbar({ activePage, setActivePage, openAuthModal }) {
         </div>
 
         {/* Desktop Navigation Links */}
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '22px' }}>
+        <nav style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button 
             onClick={() => setActivePage('landing')}
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: activePage === 'landing' ? 700 : 500, color: activePage === 'landing' ? 'var(--primary)' : 'var(--text-main)', fontSize: '0.95rem' }}>
@@ -69,6 +69,26 @@ export function Navbar({ activePage, setActivePage, openAuthModal }) {
             onClick={() => setActivePage('jobs')}
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: activePage === 'jobs' ? 700 : 500, color: activePage === 'jobs' ? 'var(--primary)' : 'var(--text-main)', fontSize: '0.95rem' }}>
             Find Jobs
+          </button>
+
+          <button 
+            id="nav-workflow-map-btn"
+            onClick={() => setActivePage('workflow-map')}
+            style={{ 
+              background: activePage === 'workflow-map' ? 'rgba(79, 70, 229, 0.12)' : 'none', 
+              border: activePage === 'workflow-map' ? '1px solid var(--primary)' : '1px solid rgba(79, 70, 229, 0.25)', 
+              borderRadius: '8px',
+              padding: '6px 12px',
+              cursor: 'pointer', 
+              fontWeight: 700, 
+              color: 'var(--primary)', 
+              fontSize: '0.9rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s'
+            }}>
+            <Map size={16} /> 📑 Workflow Map
           </button>
 
           {/* Role-Specific Links */}

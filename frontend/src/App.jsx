@@ -8,7 +8,8 @@ import { JobDetailsPage } from './pages/JobDetailsPage';
 import { CandidateDashboard } from './pages/CandidateDashboard';
 import { RecruiterDashboard } from './pages/RecruiterDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
-import { Database, ShieldCheck, Heart } from 'lucide-react';
+import { WorkflowMapPage } from './pages/WorkflowMapPage';
+import { Database, ShieldCheck, Heart, Map } from 'lucide-react';
 
 function MainApp() {
   const { user, role } = useAuth();
@@ -91,6 +92,14 @@ function MainApp() {
         {activePage === 'admin-dash' && (
           <AdminDashboard />
         )}
+
+        {activePage === 'workflow-map' && (
+          <WorkflowMapPage 
+            setActivePage={setActivePage}
+            openAuthModal={openAuthModal}
+            onViewJob={handleViewJob}
+          />
+        )}
       </div>
 
       {/* Global Auth Modal */}
@@ -113,6 +122,14 @@ function MainApp() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '0.85rem' }}>
+            <button 
+              onClick={() => {
+                setActivePage('workflow-map');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              style={{ background: 'rgba(79, 70, 229, 0.2)', border: '1px solid #4f46e5', color: '#818cf8', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 600 }}>
+              <Map size={14} /> Open PDF Blueprint
+            </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38bdf8' }}>
               <Database size={16} /> TiDB Cloud Serverless
             </div>
