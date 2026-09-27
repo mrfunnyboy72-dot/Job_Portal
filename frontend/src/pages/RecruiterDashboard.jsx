@@ -188,16 +188,16 @@ export function RecruiterDashboard({ onViewJob }) {
   const totalShortlisted = applicants.filter(a => a.status === 'shortlisted' || a.status === 'interview' || a.status === 'selected').length;
 
   return (
-    <div style={{ maxWidth: '1280px', margin: '30px auto 80px', padding: '0 24px' }}>
+    <div className="container-responsive" style={{ maxWidth: '1280px', margin: '20px auto 80px', padding: '0 20px' }}>
       {/* Top Banner with Stats */}
-      <div className="card" style={{ padding: '28px', marginBottom: '28px', background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', color: '#fff' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
+      <div className="card" style={{ padding: '24px', marginBottom: '24px', background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', color: '#fff' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <div style={{ fontSize: '0.85rem', color: '#a5b4fc', fontWeight: 600 }}>RECRUITER & HIRING PORTAL</div>
-            <h1 style={{ fontSize: '1.8rem', fontWeight: 800, marginTop: '2px', fontFamily: 'var(--font-display)' }}>
+            <h1 style={{ fontSize: 'clamp(1.4rem, 4vw, 1.8rem)', fontWeight: 800, marginTop: '2px', fontFamily: 'var(--font-display)' }}>
               {companyProfile?.company_name || 'Your Company Workspace'}
             </h1>
-            <p style={{ color: '#c7d2fe', fontSize: '0.95rem', marginTop: '4px' }}>
+            <p style={{ color: '#c7d2fe', fontSize: '0.9rem', marginTop: '4px' }}>
               Post jobs, track admin approvals, and manage candidate hiring pipelines.
             </p>
           </div>
@@ -206,36 +206,36 @@ export function RecruiterDashboard({ onViewJob }) {
             id="post-new-job-btn"
             onClick={() => setActiveTab('post-job')} 
             className="btn btn-primary"
-            style={{ backgroundColor: '#4f46e5', color: '#fff', border: 'none', padding: '12px 22px' }}>
+            style={{ backgroundColor: '#4f46e5', color: '#fff', border: 'none', padding: '10px 20px' }}>
             <PlusCircle size={18} /> Post New Job
           </button>
         </div>
 
         {/* Quick Stats Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+        <div className="quick-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
           <div>
-            <div style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>Total Jobs Created</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800 }}>{jobs.length}</div>
+            <div style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>Total Jobs Created</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800 }}>{jobs.length}</div>
           </div>
           <div>
-            <div style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>Approved & Live Jobs</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#34d399' }}>
+            <div style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>Approved & Live Jobs</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#34d399' }}>
               {jobs.filter(j => j.status === 'approved').length}
             </div>
           </div>
           <div>
-            <div style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>Pending Admin Approval</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#fbbf24' }}>
+            <div style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>Pending Admin Approval</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fbbf24' }}>
               {jobs.filter(j => j.status === 'pending').length}
             </div>
           </div>
           <div>
-            <div style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>Total Applicants</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800 }}>{applicants.length}</div>
+            <div style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>Total Applicants</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800 }}>{applicants.length}</div>
           </div>
           <div>
-            <div style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>Shortlisted / In Process</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#a78bfa' }}>{totalShortlisted}</div>
+            <div style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>Shortlisted / In Process</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#a78bfa' }}>{totalShortlisted}</div>
           </div>
         </div>
       </div>
@@ -247,7 +247,7 @@ export function RecruiterDashboard({ onViewJob }) {
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--border-color)', marginBottom: '24px' }}>
+      <div className="dashboard-tabs">
         <button 
           id="tab-recruiter-jobs-btn"
           onClick={() => setActiveTab('jobs')}

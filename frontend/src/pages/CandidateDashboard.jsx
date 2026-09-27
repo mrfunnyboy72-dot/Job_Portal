@@ -181,21 +181,21 @@ export function CandidateDashboard({ onViewJob }) {
   };
 
   return (
-    <div style={{ maxWidth: '1280px', margin: '30px auto 80px', padding: '0 24px' }}>
+    <div className="container-responsive" style={{ maxWidth: '1280px', margin: '20px auto 80px', padding: '0 20px' }}>
       {/* Top Welcome Card with Profile Completion Bar */}
-      <div className="card" style={{ padding: '28px', marginBottom: '28px', background: 'linear-gradient(135deg, #4f46e5 0%, #312e81 100%)', color: '#fff' }}>
+      <div className="card" style={{ padding: '24px', marginBottom: '24px', background: 'linear-gradient(135deg, #4f46e5 0%, #312e81 100%)', color: '#fff' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
           <div>
             <div style={{ fontSize: '0.85rem', color: '#c7d2fe', fontWeight: 600 }}>CANDIDATE DASHBOARD</div>
-            <h1 style={{ fontSize: '1.8rem', fontWeight: 800, marginTop: '2px', fontFamily: 'var(--font-display)' }}>
+            <h1 style={{ fontSize: 'clamp(1.4rem, 4vw, 1.8rem)', fontWeight: 800, marginTop: '2px', fontFamily: 'var(--font-display)' }}>
               Welcome back, {user?.name}!
             </h1>
-            <p style={{ color: '#e0e7ff', fontSize: '0.95rem', marginTop: '4px' }}>
+            <p style={{ color: '#e0e7ff', fontSize: '0.9rem', marginTop: '4px' }}>
               Track your job applications, update your profile, and manage your resume.
             </p>
           </div>
 
-          <div style={{ background: 'rgba(255, 255, 255, 0.12)', backdropFilter: 'blur(10px)', padding: '16px 20px', borderRadius: '12px', minWidth: '220px' }}>
+          <div style={{ background: 'rgba(255, 255, 255, 0.12)', backdropFilter: 'blur(10px)', padding: '14px 18px', borderRadius: '12px', minWidth: '200px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '6px', fontWeight: 600 }}>
               <span>Profile Strength</span>
               <span>{profile?.completion_percentage || 50}%</span>
@@ -211,7 +211,7 @@ export function CandidateDashboard({ onViewJob }) {
       </div>
 
       {/* Tabs Navigation */}
-      <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--border-color)', marginBottom: '24px' }}>
+      <div className="dashboard-tabs">
         <button 
           id="tab-candidate-applications-btn"
           onClick={() => setActiveTab('applications')}

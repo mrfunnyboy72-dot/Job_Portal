@@ -78,15 +78,17 @@ export function JobsPage({ initialFilter = {}, onViewJob }) {
     setPage(1);
   };
 
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+
   return (
-    <div style={{ maxWidth: '1280px', margin: '30px auto 80px', padding: '0 24px' }}>
+    <div className="container-responsive" style={{ maxWidth: '1280px', margin: '20px auto 80px', padding: '0 20px' }}>
       {/* Search Header Banner */}
-      <div className="card" style={{ padding: '24px', marginBottom: '30px', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', color: '#fff' }}>
-        <h1 style={{ fontSize: '1.6rem', fontWeight: 800, fontFamily: 'var(--font-display)', marginBottom: '16px' }}>
+      <div className="card" style={{ padding: '20px', marginBottom: '24px', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', color: '#fff' }}>
+        <h1 style={{ fontSize: 'clamp(1.2rem, 3vw, 1.6rem)', fontWeight: 800, fontFamily: 'var(--font-display)', marginBottom: '14px' }}>
           Find Your Perfect Career Opportunity
         </h1>
-        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-          <div style={{ flex: '1.5', minWidth: '220px', display: 'flex', alignItems: 'center', padding: '8px 14px', gap: '10px', background: '#fff', borderRadius: '8px', color: '#0f172a' }}>
+        <form onSubmit={handleSearchSubmit} className="search-form-responsive" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ flex: '1.5', minWidth: '200px', display: 'flex', alignItems: 'center', padding: '8px 14px', gap: '10px', background: '#fff', borderRadius: '8px', color: '#0f172a' }}>
             <Search size={18} color="#64748b" />
             <input 
               id="jobs-keyword-filter"
@@ -98,7 +100,7 @@ export function JobsPage({ initialFilter = {}, onViewJob }) {
             />
           </div>
 
-          <div style={{ flex: '1', minWidth: '180px', display: 'flex', alignItems: 'center', padding: '8px 14px', gap: '10px', background: '#fff', borderRadius: '8px', color: '#0f172a' }}>
+          <div style={{ flex: '1', minWidth: '160px', display: 'flex', alignItems: 'center', padding: '8px 14px', gap: '10px', background: '#fff', borderRadius: '8px', color: '#0f172a' }}>
             <MapPin size={18} color="#64748b" />
             <input 
               id="jobs-location-filter"
@@ -114,17 +116,35 @@ export function JobsPage({ initialFilter = {}, onViewJob }) {
             id="jobs-filter-search-btn"
             type="submit" 
             className="btn btn-primary" 
-            style={{ minWidth: '130px' }}>
+            style={{ minWidth: '120px' }}>
             Search
           </button>
         </form>
       </div>
 
+      {/* Mobile Toggle Filters Button */}
+      <div className="mobile-menu-btn" style={{ marginBottom: '14px' }}>
+        <button 
+          onClick={() => setShowMobileFilters(!showMobileFilters)}
+          className="btn btn-secondary"
+          style={{ width: '100%', justifyContent: 'space-between', padding: '10px 16px', fontWeight: 700 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <SlidersHorizontal size={18} color="var(--primary)" /> {showMobileFilters ? 'Hide Filters' : 'Show Filters'}
+          </span>
+          <span className="badge badge-applied">{category !== 'All' || jobType !== 'All' ? 'Filtered' : 'All'}</span>
+        </button>
+      </div>
+
       {/* Main Layout: Filters Sidebar + Job Listings */}
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '30px', alignItems: 'start' }}>
+      <div className="jobs-page-grid">
         {/* Sidebar Filters */}
-        <aside className="card" style={{ padding: '22px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid var(--border-color)' }}>
+        <aside 
+          className="card" 
+          style={{ 
+            padding: '20px', 
+            display: typeof window !== 'undefined' && window.innerWidth <= 860 && !showMobileFilters ? 'none' : 'block' 
+          }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', paddingBottom: '12px', borderBottom: '1px solid var(--border-color)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '1rem' }}>
               <SlidersHorizontal size={18} color="var(--primary)" /> Filters
             </div>
@@ -136,8 +156,9 @@ export function JobsPage({ initialFilter = {}, onViewJob }) {
           </div>
 
           {/* Category */}
-          <div style={{ marginBottom: '22px' }}>
-            <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: '8px' }}>
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', display: 'block', marginBottom: '8px' }}>
+
               Category
             </label>
             <select 

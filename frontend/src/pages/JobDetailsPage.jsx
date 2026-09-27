@@ -117,50 +117,50 @@ export function JobDetailsPage({ jobId, onBack, openAuthModal, onAppliedSuccess 
   const skillsList = Array.isArray(job.skills) ? job.skills : (typeof job.skills === 'string' ? JSON.parse(job.skills || '[]') : []);
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '30px auto 80px', padding: '0 24px' }}>
+    <div className="container-responsive" style={{ maxWidth: '1000px', margin: '20px auto 80px', padding: '0 20px' }}>
       <button 
         onClick={onBack}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', marginBottom: '20px' }}>
+        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', marginBottom: '16px' }}>
         <ArrowLeft size={18} /> Back to Job Listings
       </button>
 
       {/* Main Header Card */}
-      <div className="card" style={{ padding: '32px', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px' }}>
-          <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-            <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: 'var(--bg-subtle)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+      <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
+        <div className="job-details-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px' }}>
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+            <div style={{ width: '56px', height: '56px', flexShrink: 0, borderRadius: '14px', background: 'var(--bg-subtle)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
               {job.company_logo ? (
                 <img src={job.company_logo} alt={job.company_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
-                <Building2 size={32} color="var(--text-muted)" />
+                <Building2 size={28} color="var(--text-muted)" />
               )}
             </div>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 600 }}>{job.company_name}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.95rem', color: 'var(--text-muted)', fontWeight: 600 }}>{job.company_name}</span>
                 <span className="badge badge-approved">Verified & Approved</span>
               </div>
-              <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)', margin: '4px 0 8px', fontFamily: 'var(--font-display)' }}>
+              <h1 style={{ fontSize: 'clamp(1.3rem, 4vw, 1.8rem)', fontWeight: 800, color: 'var(--text-main)', margin: '4px 0 8px', fontFamily: 'var(--font-display)' }}>
                 {job.title}
               </h1>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <MapPin size={16} /> {job.location}
+                  <MapPin size={15} /> {job.location}
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Briefcase size={16} /> {job.job_type}
+                  <Briefcase size={15} /> {job.job_type}
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Calendar size={16} /> {job.experience_level}
+                  <Calendar size={15} /> {job.experience_level}
                 </span>
               </div>
             </div>
           </div>
 
-          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div className="job-details-action-col" style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Offered Salary</div>
-              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#059669' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Offered Salary</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#059669' }}>
                 ₹{(job.salary_min / 100000).toFixed(1)}L - ₹{(job.salary_max / 100000).toFixed(1)}L PA
               </div>
             </div>
@@ -244,7 +244,7 @@ export function JobDetailsPage({ jobId, onBack, openAuthModal, onAppliedSuccess 
       )}
 
       {/* Description & Requirements Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
+      <div className="job-details-grid">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* Job Overview */}
           <div className="card" style={{ padding: '28px' }}>
